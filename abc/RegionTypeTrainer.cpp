@@ -53,7 +53,7 @@ bool CRegionTypeTrainer::Initialize(void)
 {
 	ASSERT( _pMLP );
 
-	const int anLayerInfo[] = { 14, 28, 2 };
+	const int anLayerInfo[] = { ABC_FEATURE_COUNT, ABC_FEATURE_COUNT * 2, ABC_RESULT_COUNT };
 	const int nLayerInfoCount = sizeof( anLayerInfo ) / sizeof(int) ;
 
 	cv::Mat layers( nLayerInfoCount, 1, CV_32SC1 );
