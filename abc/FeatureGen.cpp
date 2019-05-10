@@ -119,7 +119,9 @@ bool CFeatureGen::CalcFeatures(
 	const double dGlobalMax  = (double) wGlobalMax;
 	const double dGlobalMin  = (double) wGlobalMin;
 	const double dGlobalMean = dGlobalSum / dGlobalPopulation;
-	const double dGlobalStd  = sqrt( dGlobalSoS / dGlobalPopulation - CLU_SQUARE( dGlobalMean ) );
+
+	// FIX: When an image having the same value comes in, it may have a value smaller than 0 due to an error.
+	const double dGlobalStd  = sqrt( CLU_LBOUND( dGlobalSoS / dGlobalPopulation - CLU_SQUARE( dGlobalMean ), 0. ) );
 
 	// output
 	for ( int bi=0; bi<ABC_REGION_DIVIDE_2; bi++ )
@@ -139,8 +141,10 @@ bool CFeatureGen::CalcFeatures(
 		pdFeatures[ kABCFeatureId_Local_Max   ]	= (double) awLocalMax[ bi ];
 		pdFeatures[ kABCFeatureId_Local_Min   ]	= (double) awLocalMin[ bi ];
 		pdFeatures[ kABCFeatureId_Local_Mean  ]	= adLocalSum[ bi ] / dBlkPopulation;
-		pdFeatures[ kABCFeatureId_Local_Std   ]	=
-			sqrt( adLocalSoS[ bi ] / dBlkPopulation - CLU_SQUARE( pdFeatures[ kABCFeatureId_Local_Mean ] ) );
+
+		// FIX: When an image having the same value comes in, it may have a value smaller than 0 due to an error.
+		pdFeatures[ kABCFeatureId_Local_Std   ]	= sqrt( CLU_LBOUND( 
+					adLocalSoS[ bi ] / dBlkPopulation - CLU_SQUARE( pdFeatures[ kABCFeatureId_Local_Mean ] ), 0. ) );
 	}
 
 	return true;
@@ -259,6 +263,11 @@ void CFeatureGen::_calcOtsu(
 					const WORD* pwSrc, int nStrider, int nBlkW, int nBlkH, WORD wMin, WORD wMax,
 					double* pdOtsu, double* pdInner, double* pdInter ) 
 {
+	if ( wMin == wMax )
+	{
+		*pdOtsu  = 0.5; *pdInner = 0.5; *pdInter = 0.5;
+		return;
+	}
 
 	// histogram
 	int iHist[ HISTSIZE + 1 ];		// +1 simple bound
