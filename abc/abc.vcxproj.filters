@@ -27,6 +27,15 @@
     <ClCompile Include="AlgABCFeatureGenerator.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="RegionClassifier.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="abc.logger.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="RegionTypeTrainer.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\abc.rc2">
@@ -50,6 +59,18 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="AlgABCFeatureGenerator.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="abc.logger.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="include\abc\RegionClassifier.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="include\abc\abc_types.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="include\abc\RegionTypeTrainer.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
