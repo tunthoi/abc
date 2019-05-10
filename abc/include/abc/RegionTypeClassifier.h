@@ -45,7 +45,9 @@ namespace comed { namespace abc
 				IN		const cl::img::CImageBuf& img, 
 				OUT		RegionType arrResult[ ABC_REGION_DIVIDE ],
 				OUT		int* pnNumObjBlocks,
-				OUT		int* pnMeanObjBlocks
+				OUT		int* pnMeanObjBlocks,
+				OUT		int* pnMinObj,
+				OUT		int* pnMaxObj
 			) const;
 
 		//////////////////////////////////////////////////////////////////////////////////////////////////////////////

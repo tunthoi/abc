@@ -20,6 +20,17 @@ using namespace comed::abc;
 #define new DEBUG_NEW 
 #endif 
 
+// TODO: replace the followings
+static inline double CLU_BOUND( double val, double minValue, double maxValue )
+{
+	if ( val < minValue )
+		return minValue;
+	else if ( val > maxValue )
+		return maxValue;
+
+	return val;
+}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // constructor
@@ -87,7 +98,9 @@ bool CRegionTypeClassifier::ClassfyRegion(
 				IN		const cl::img::CImageBuf& img, 
 				OUT		RegionType arrResult[ ABC_REGION_DIVIDE ],
 				OUT		int* pnNumObjBlocks,
-				OUT		int* pnMeanObjBlocks
+				OUT		int* pnMeanObjBlocks,
+				OUT		int* pnMinObj,
+				OUT		int* pnMaxObj
 			) const
 {
 	ASSERT( _pMLP_Objec );
@@ -96,6 +109,8 @@ bool CRegionTypeClassifier::ClassfyRegion(
 	ASSERT( arrResult != nullptr );
 	ASSERT( pnNumObjBlocks );
 	ASSERT( pnMeanObjBlocks );
+	ASSERT( pnMinObj );
+	ASSERT( pnMaxObj );
 
 	if ( ! img.IsValid() )
 		return false;
@@ -142,12 +157,15 @@ bool CRegionTypeClassifier::ClassfyRegion(
 
 		const float s1 = _pMLP_Objec->predict( feature, resultObjec );
 		const float s2 = _pMLP_Metal->predict( feature, resultMetal );
+
 		UNREFERENCED_PARAMETER( s1 );
 		UNREFERENCED_PARAMETER( s2 );
 
 		// make output
 		int nNumObjBlocks = 0;
 		double dSumObjBlocks = 0.;
+		double dMinObj = 1.0;
+		double dMaxObj = 0.0;
 
 		for ( int bi=0; bi<nNumBlocks; bi++ )
 		{
@@ -170,7 +188,10 @@ bool CRegionTypeClassifier::ClassfyRegion(
 				if ( ! bBackg && ! bMetal )
 				{
 					nNumObjBlocks ++;
-					dSumObjBlocks += ppDblFeatures[ bi ][ kABCFeatureId_Global_Mean ];
+					dSumObjBlocks += ppDblFeatures[ bi ][ kABCFeatureId_Local_Mean ];
+
+					dMinObj = std::min( dMinObj, ppDblFeatures[ bi ][ kABCFeatureId_Local_Min ] );
+					dMaxObj = std::max( dMaxObj, ppDblFeatures[ bi ][ kABCFeatureId_Local_Max ] );
 				}
 			}
 		}
@@ -178,6 +199,8 @@ bool CRegionTypeClassifier::ClassfyRegion(
 		// output value
 		*pnNumObjBlocks = nNumObjBlocks;
 		*pnMeanObjBlocks = ( nNumObjBlocks != 0 ) ? (int)( dSumObjBlocks * 65535. / nNumObjBlocks + 0.5 ) : 0;
+		*pnMinObj = (int) CLU_BOUND( dMinObj * 65535. + 0.5, 0, 65535 );
+		*pnMaxObj = (int) CLU_BOUND( dMaxObj * 65535. + 0.5, 0, 65535 );
 	}
 
 	// delete temp buffers
