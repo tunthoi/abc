@@ -6,6 +6,7 @@
 
 // cl
 #include "clImgProc/ImageBuf.h"
+#include "clImgProc/resize.h"
 #include "clUtils/utils.h"
 
 // platform
@@ -20,18 +21,31 @@ using namespace comed::abc;
 #endif 
 
 // macro
-#define HISTSIZE		256
+#define HISTSIZE					256
+#define THRESHOLD_IMG_SIZE			( 1024 * 1024 )
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // only public methods
 bool CFeatureGen::CalcFeatures( 
-				IN		const cl::img::CImageBuf & img, 
+				IN		const cl::img::CImageBuf & img__, 
 				OUT		double** adbFeatures )
 //				OUT		double adbFeatures[ ABC_REGION_DIVIDE_2 ][ ABC_FEATURE_COUNT ] )
 {
-	if ( ! img.IsValid() )
+	if ( ! img__.IsValid() )
 		return false;
+
+	// make half image if too large
+	const cl::img::CImageBuf* pImg = &img__;
+	cl::img::CImageBuf imgHalf;
+
+	if ( img__.GetWidth() * img__.GetHeight() >= THRESHOLD_IMG_SIZE )
+	{
+		VERIFY( cl::img::utils::ResizeWholeImage( img__, img__.GetWidth() / 2, img__.GetHeight() / 2, 
+													cl::img::utils::EINTP_Nearest, &imgHalf ) );
+		pImg = &imgHalf;
+	}
+	const cl::img::CImageBuf& img = *pImg;
 
 	// asserting
 	ASSERT( img.GetType() == cl::img::EIT_Gray16bit );
@@ -55,29 +69,28 @@ bool CFeatureGen::CalcFeatures(
 
 	// first, we have to local statistics
 	WORD awLocalMax[ ABC_REGION_DIVIDE_2 ], awLocalMin[ ABC_REGION_DIVIDE_2 ];
-	UINT anLocalSum[ ABC_REGION_DIVIDE_2 ];
-	double adbLocalSoS[ ABC_REGION_DIVIDE_2 ];
+	double adLocalSum[ ABC_REGION_DIVIDE_2 ];
+	double adLocalSoS[ ABC_REGION_DIVIDE_2 ];
 
-	_calcLocalStatistics( pwSrc, nImgW, nImgH, nBlkW, nBlkH, awLocalMax, awLocalMin, anLocalSum, adbLocalSoS );
+	_calcLocalStatistics( pwSrc, nImgW, nImgH, nBlkW, nBlkH, awLocalMax, awLocalMin, adLocalSum, adLocalSoS );
 
-	// global statistics
+	// global statistics using local statistics
 	WORD wGlobalMax = 0x0, wGlobalMin = 0xffff;
-	UINT nGlobalSum = 0;
-	double dbGlobalSoS = 0.0;
+	double dGlobalSum = 0.0;
+	double dGlobalSoS = 0.0;
 
 	for ( int bi=0; bi<ABC_REGION_DIVIDE_2; bi++ )
 	{
 		wGlobalMax = CLU_MAX( wGlobalMax, awLocalMax[ bi ] );
 		wGlobalMin = CLU_MIN( wGlobalMin, awLocalMin[ bi ] );
 
-		nGlobalSum += anLocalSum[ bi ];
-		dbGlobalSoS += adbLocalSoS[ bi ];
+		dGlobalSum += adLocalSum[ bi ];
+		dGlobalSoS += adLocalSoS[ bi ];
 	}
 
 	// global otsu
-	double dbGlobalOtsu = 0., dbGlobalInner = 0., dbGlobalInter = 0.;
-	_calcOtsu( pwSrc, nImgW, nImgW, nImgH, wGlobalMin, wGlobalMax, 
-					&dbGlobalOtsu, &dbGlobalInner, &dbGlobalInter );
+	double dGlobalOtsu = 0., dGlobalInner = 0., dGlobalInter = 0.;
+	_calcOtsu( pwSrc, nImgW, nImgW, nImgH, wGlobalMin, wGlobalMax, &dGlobalOtsu, &dGlobalInner, &dGlobalInter );
 
 	// local otsu
 	for ( int bi=0; bi<ABC_REGION_DIVIDE_2; bi++ )
@@ -100,30 +113,34 @@ bool CFeatureGen::CalcFeatures(
 	}
 
 	// block population
-	const double dbBlkPopulation = (double)( nBlkW * nBlkH );
-	const double dbGlobalPopulation = dbBlkPopulation * ABC_REGION_DIVIDE_2;
+	const double dBlkPopulation = (double)( nBlkW * nBlkH );
+	const double dGlobalPopulation = dBlkPopulation * ABC_REGION_DIVIDE_2;
+
+	const double dGlobalMax  = (double) wGlobalMax;
+	const double dGlobalMin  = (double) wGlobalMin;
+	const double dGlobalMean = dGlobalSum / dGlobalPopulation;
+	const double dGlobalStd  = sqrt( dGlobalSoS / dGlobalPopulation - CLU_SQUARE( dGlobalMean ) );
 
 	// output
 	for ( int bi=0; bi<ABC_REGION_DIVIDE_2; bi++ )
 	{
-		double* pdbFeatures = adbFeatures[ bi ];
-		ASSERT( pdbFeatures );
+		double* pdFeatures = adbFeatures[ bi ];
+		ASSERT( pdFeatures );
 
-		pdbFeatures[ kABCFeatureId_Global_Otsu	]	= dbGlobalOtsu;
-		pdbFeatures[ kABCFeatureId_Global_Inner	]	= dbGlobalInner;
-		pdbFeatures[ kABCFeatureId_Global_Inter	]	= dbGlobalInter;
+		pdFeatures[ kABCFeatureId_Global_Otsu	]	= dGlobalOtsu;
+		pdFeatures[ kABCFeatureId_Global_Inner	]	= dGlobalInner;
+		pdFeatures[ kABCFeatureId_Global_Inter	]	= dGlobalInter;
 
-		pdbFeatures[ kABCFeatureId_Global_Max   ]	= (double) wGlobalMax;
-		pdbFeatures[ kABCFeatureId_Global_Min   ]	= (double) wGlobalMin;
-		pdbFeatures[ kABCFeatureId_Global_Mean  ]	= (double) nGlobalSum / dbGlobalPopulation;
-		pdbFeatures[ kABCFeatureId_Global_Std   ]	= 
-			sqrt( CLU_SQUARE( pdbFeatures[ kABCFeatureId_Global_Mean ] ) - dbGlobalSoS / dbGlobalPopulation );
+		pdFeatures[ kABCFeatureId_Global_Max   ]	= dGlobalMax;
+		pdFeatures[ kABCFeatureId_Global_Min   ]	= dGlobalMin;
+		pdFeatures[ kABCFeatureId_Global_Mean  ]	= dGlobalMean;
+		pdFeatures[ kABCFeatureId_Global_Std   ]	= dGlobalStd;
 
-		pdbFeatures[ kABCFeatureId_Local_Max   ]	= (double) awLocalMax[ bi ];
-		pdbFeatures[ kABCFeatureId_Local_Min   ]	= (double) awLocalMin[ bi ];
-		pdbFeatures[ kABCFeatureId_Local_Mean  ]	= (double) anLocalSum[ bi ] / dbBlkPopulation;
-		pdbFeatures[ kABCFeatureId_Local_Std   ]	=
-			sqrt( CLU_SQUARE( pdbFeatures[ kABCFeatureId_Local_Mean ] ) - adbLocalSoS[ bi ] / dbBlkPopulation );
+		pdFeatures[ kABCFeatureId_Local_Max   ]	= (double) awLocalMax[ bi ];
+		pdFeatures[ kABCFeatureId_Local_Min   ]	= (double) awLocalMin[ bi ];
+		pdFeatures[ kABCFeatureId_Local_Mean  ]	= adLocalSum[ bi ] / dBlkPopulation;
+		pdFeatures[ kABCFeatureId_Local_Std   ]	=
+			sqrt( adLocalSoS[ bi ] / dBlkPopulation - CLU_SQUARE( pdFeatures[ kABCFeatureId_Local_Mean ] ) );
 	}
 
 	return true;
@@ -133,13 +150,13 @@ bool CFeatureGen::CalcFeatures(
 // local
 void CFeatureGen::_calcLocalStatistics( 
 			const WORD* pwSrc, int nImgW, int nImgH, int nBlkW, int nBlkH, 
-			WORD awLocalMax[], WORD awLocalMin[], UINT anLocalSum[], double adbLocalSoS[] )
+			WORD awLocalMax[], WORD awLocalMin[], double adLocalSum[], double adLocalSoS[] )
 {
 	UNREFERENCED_PARAMETER( nImgH );
 
 	// loop for blocks
-	#pragma omp parallel for schedule(static)		\
-				firstprivate( pwSrc, nBlkW, nBlkH, nImgW, awLocalMax, awLocalMin, anLocalSum, adbLocalSoS )
+//	#pragma omp parallel for schedule(static)		\
+//				firstprivate( pwSrc, nBlkW, nBlkH, nImgW, awLocalMax, awLocalMin, anLocalSum, adbLocalSoS )
 
 	for ( int bi=0; bi<ABC_REGION_DIVIDE_2; bi++ )
 	{
@@ -149,14 +166,14 @@ void CFeatureGen::_calcLocalStatistics(
 		const WORD* pwBlk = pwSrc + ( bx * nBlkW ) + ( by * nBlkH ) * nImgW;
 
 		_calcBlockStatistics( pwBlk, nImgW, nBlkW, nBlkH, 
-			awLocalMax + bi, awLocalMin + bi, anLocalSum + bi, adbLocalSoS + bi );
+			awLocalMax + bi, awLocalMin + bi, adLocalSum + bi, adLocalSoS + bi );
 	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // block
 void CFeatureGen::_calcBlockStatistics( const WORD* pwBlk, int nStrider, int nBlkW, int nBlkH, 
-									    WORD* pwLocalMax, WORD* pwLocalMin, UINT* pnLocalSum, double* pdbLocalSoS )
+									    WORD* pwLocalMax, WORD* pwLocalMin, double* pdLocalSum, double* pdLocalSoS )
 {
 	// local constant
 	const int nBlkW_8 = ( nBlkW / 8 ) * 8;
@@ -166,27 +183,28 @@ void CFeatureGen::_calcBlockStatistics( const WORD* pwBlk, int nStrider, int nBl
 	// initialize
 	*pwLocalMax = 0x0000;
 	*pwLocalMin = 0xffff;
-	*pnLocalSum = 0;
-	*pdbLocalSoS = 0.;
+	*pdLocalSum = 0.;
+	*pdLocalSoS = 0.;
+
+	__m128i mMax = mZeros;
+	__m128i mMin = mOnes;
 
 	// loop
 	for ( int y=0; y<nBlkH; y++ )
 	{
 		int x = 0;
 
-		__m128i mMax = mZeros;
-		__m128i mMin = mOnes;
 		__m128i mSum = mZeros;
 		__m128  mfSoS = _mm_set1_ps( 0.f );
 
-		// SSE operation을 사용해서 8 pixels씩 처리한다.
+		// SSE operationA≫ ≫c¿eCØ¼­ 8 pixels¾¿ A³¸®CN´U.
 		for ( ; x<nBlkW_8; x+=8 )
 		{
-			__m128i mValue = _mm_loadu_si128( reinterpret_cast<const __m128i*>( pwBlk ) );
+			__m128i mValue = _mm_loadu_si128( reinterpret_cast<const __m128i*>( pwBlk + x ) );
 
 			// min, max
 			mMax = _mm_max_epu16( mMax, mValue );
-			mMin = _mm_min_epi16( mMin, mValue );
+			mMin = _mm_min_epu16( mMin, mValue );
 
 			// convert to 32bit 
 			__m128i mValue0 = _mm_unpacklo_epi16( mValue, mZeros );
@@ -215,22 +233,24 @@ void CFeatureGen::_calcBlockStatistics( const WORD* pwBlk, int nStrider, int nBl
 		}
 		for ( int i=0; i<4; i++ )
 		{
-			*pnLocalSum  += static_cast<UINT>( mSum.m128i_u32[ i ] );
-			*pdbLocalSoS += CLU_SQUARE( static_cast<double>( mfSoS.m128_f32[ i ] ) );
+			*pdLocalSum += static_cast<double>( mSum.m128i_u32[ i ] );
+			*pdLocalSoS += static_cast<double>( mfSoS.m128_f32[ i ] );
 		}
 
 		// remaining pixels
 		for ( ; x<nBlkW; x++ )
 		{
-			*pwLocalMax = CLU_MAX( *pwLocalMax, pwBlk[ x ] );
-			*pwLocalMin = CLU_MIN( *pwLocalMin, pwBlk[ x ] );
-			*pnLocalSum += static_cast<UINT>( pwBlk[ x ] );
-			*pdbLocalSoS += CLU_SQUARE( static_cast<double>( pwBlk[ x ] ) );
+			*pwLocalMax  = CLU_MAX( *pwLocalMax, pwBlk[ x ] );
+			*pwLocalMin  = CLU_MIN( *pwLocalMin, pwBlk[ x ] );
+			*pdLocalSum += static_cast<double>( pwBlk[ x ] );
+			*pdLocalSoS += static_cast<double>( pwBlk[ x ] );
 		}
 
 		// next line
 		pwBlk += nStrider;
 	}
+
+	return;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

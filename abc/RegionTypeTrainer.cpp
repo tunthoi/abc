@@ -3,7 +3,14 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "stdafx.h"
 #include "abc/RegionTypeTrainer.h"
+
+#define USE_NEW_FEATUREGEN
+
+#ifdef USE_NEW_FEATUREGEN
+#include "FeatureGen.h"
+#else 
 #include "FeatureGenerator.h"
+#endif 
 
 // openCV2
 #include "opencv2/opencv.hpp"
@@ -92,6 +99,39 @@ bool CRegionTypeTrainer::AddTrainingData(
 		return false;
 	}
 
+#ifdef USE_NEW_FEATUREGEN
+	double** ppdbFeatures = new double* [ ABC_REGION_DIVIDE_2 ];
+	ASSERT( ppdbFeatures );
+
+	for ( int i=0; i<ABC_REGION_DIVIDE_2; i++ )
+	{
+		ppdbFeatures[ i ] = new double [ ABC_FEATURE_COUNT ];
+		ASSERT( ppdbFeatures[ i ] );
+	}
+
+	CFeatureGen::CalcFeatures( img, ppdbFeatures ); 
+
+	for ( int i=0; i<ABC_REGION_DIVIDE_2; i++ )
+	{
+		DataTrainingParams * pTraningData = new DataTrainingParams;
+		ASSERT( pTraningData );
+
+		pTraningData->nRow = i / ABC_REGION_DIVIDE ;
+		pTraningData->nCol = i % ABC_REGION_DIVIDE;
+
+		for ( int j=0; j<ABC_FEATURE_COUNT; j++ )
+			pTraningData->adFeatures[ j ] = ppdbFeatures[ i ][ j ];
+
+		pTraningData->adResults[ 0 ] = arrTypes[ i ].bMetal      ? 1. : -1.;
+		pTraningData->adResults[ 1 ] = arrTypes[ i ].bBackground ? 1. : -1.;
+
+		_listData.AddTail( pTraningData );
+
+		delete [] ppdbFeatures[i];
+	}
+	delete [] ppdbFeatures;
+
+#else
 	// local constants
 	const int h_divide = ABC_REGION_DIVIDE, v_divide = ABC_REGION_DIVIDE;
 
@@ -143,6 +183,7 @@ bool CRegionTypeTrainer::AddTrainingData(
 
 		_listData.AddTail( pTraningData );
 	}
+#endif
 
 	return true;
 }
