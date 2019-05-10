@@ -33,13 +33,15 @@ CFeatureGenerator::CFeatureGenerator( const cl::img::CImageBuf& img, int divideW
 	const WORD* pData = img.GetPixelDataWord();
 	ASSERT( pData != nullptr );
 
-	_imgBuf.create( nWidth, nHeight, cv::DataType<WORD>::type );
+	// FIX: by Hai Son, bull-shit!!! notice the dimension is reversed!!!
+	_imgBuf.create( nHeight, nWidth, cv::DataType<WORD>::type );
 
 	int nIndex = 0;
-	for ( int i = 0; i < nHeight; i++ )
-	for ( int j = 0; j < nWidth ; j++, nIndex++ )
+	for ( int y=0; y<nHeight; y++ )
+	for ( int x=0; x<nWidth ; x++, nIndex++ )
 	{
-		_imgBuf.at<WORD>( i, j ) = pData[ nIndex ];
+		// FIX: by Hai Son, notice the index order
+		_imgBuf.at<WORD>( y, x ) = pData[ nIndex ];
 	}
 
 	_nGlobalWidth = nWidth;
