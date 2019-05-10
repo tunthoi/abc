@@ -177,7 +177,7 @@ bool CRegionTypeClassifier::ClassfyRegion(
 	}
 
 	// delete temp buffers
-	for ( int i=0; i<ABC_FEATURE_COUNT; i++ )
+	for ( int i=0; i<nNumBlocks; i++ )
 		delete [] ppDblFeatures[ i ];
 	delete [] ppDblFeatures;
 
