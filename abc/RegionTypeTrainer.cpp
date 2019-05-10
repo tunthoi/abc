@@ -75,10 +75,7 @@ bool CRegionTypeTrainer::Initialize(void)
 	}
 
 	// create 
-	CvANN_MLP* pInstance = reinterpret_cast<CvANN_MLP*>( _pMLP );
-	ASSERT( pInstance != nullptr );
-
-	pInstance->create( layers );
+	_pMLP->create( layers );
 
 	// clear previous data
 	ClearTrainingData();
@@ -276,6 +273,70 @@ int CRegionTypeTrainer::GetTrainingDataCount(void) const
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// extract parameters
+int CRegionTypeTrainer::_extractData( const CString strLine, DataTrainingParams* pParam )
+{
+	ASSERT( pParam != nullptr );
+	
+	int nCount = 0;
+
+	int nCurPos = 0;
+	CString strToken = strLine.Tokenize( _T("\t "), nCurPos );
+
+	while ( ! strToken.IsEmpty() )
+	{
+		if ( nCount == 0 )
+		{
+			pParam->nCol = ::_tstoi( strToken );
+		}
+		else if ( nCount == 1 )
+		{
+			pParam->nRow = ::_tstoi( strToken );
+		}
+		else if ( nCount < ABC_FEATURE_COUNT + 2 )
+		{
+			pParam->adFeatures[ nCount - 2 ] = ::_tstof( strToken );
+		}
+		else if ( nCount < ABC_RESULT_COUNT + ABC_FEATURE_COUNT + 2 )
+		{
+			pParam->adResults[ nCount - ( ABC_FEATURE_COUNT + 2 ) ] = ::_tstof( strToken );
+		}
+		else 
+		{
+			break;
+		}
+
+		nCount ++;
+		strToken = strLine.Tokenize( _T("\t "), nCurPos );
+	}
+
+	return nCount;
+
+	// 쩐?쨌징째징 쨉쩔?????철 쩐??쩍....
+	/*
+	return ::_stscanf_s( strLine, strFormat, 
+								&( pData->nCol ),
+								&( pData->nRow ),
+								&( pData->adFeatures[  0 ] ),
+								&( pData->adFeatures[  1 ] ),
+								&( pData->adFeatures[  2 ] ),
+								&( pData->adFeatures[  3 ] ),
+								&( pData->adFeatures[  4 ] ),
+								&( pData->adFeatures[  5 ] ),
+								&( pData->adFeatures[  6 ] ),
+								&( pData->adFeatures[  7 ] ),
+								&( pData->adFeatures[  8 ] ),
+								&( pData->adFeatures[  9 ] ),
+								&( pData->adFeatures[ 10 ] ),
+								&( pData->adFeatures[ 11 ] ),
+								&( pData->adFeatures[ 12 ] ),
+								&( pData->adFeatures[ 13 ] ),
+								&( pData->adResults [  0 ] ),
+								&( pData->adResults [  1 ] ) );
+	*/
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // load data from file
 bool CRegionTypeTrainer::AddTrainingDataFrom( LPCTSTR lpszFilePath )
 {
@@ -287,7 +348,7 @@ bool CRegionTypeTrainer::AddTrainingDataFrom( LPCTSTR lpszFilePath )
 		CString strFormat( _T("%d\t%d\t") );
 
 		for ( int i=0; i<ABC_FEATURE_COUNT + ABC_RESULT_COUNT; i++ )
-			strFormat += _T("%g\t");
+			strFormat += _T("%f\t");
 
 		strFormat.TrimRight();
 
@@ -307,25 +368,7 @@ bool CRegionTypeTrainer::AddTrainingDataFrom( LPCTSTR lpszFilePath )
 			DataTrainingParams *pData = new DataTrainingParams;
 			ASSERT( pData );
 
-			const int nExtracted = ::_stscanf_s( strLine, strFormat, 
-												&( pData->nCol ),
-												&( pData->nRow ),
-												&( pData->adFeatures[  0 ] ),
-												&( pData->adFeatures[  1 ] ),
-												&( pData->adFeatures[  2 ] ),
-												&( pData->adFeatures[  3 ] ),
-												&( pData->adFeatures[  4 ] ),
-												&( pData->adFeatures[  5 ] ),
-												&( pData->adFeatures[  6 ] ),
-												&( pData->adFeatures[  7 ] ),
-												&( pData->adFeatures[  8 ] ),
-												&( pData->adFeatures[  9 ] ),
-												&( pData->adFeatures[ 10 ] ),
-												&( pData->adFeatures[ 11 ] ),
-												&( pData->adFeatures[ 12 ] ),
-												&( pData->adFeatures[ 13 ] ),
-												&( pData->adResults [  0 ] ),
-												&( pData->adResults [  1 ] ) );
+			const int nExtracted = _extractData( strLine, pData );
 
 			if ( nExtracted != 2 + ABC_FEATURE_COUNT + ABC_RESULT_COUNT )
 			{
