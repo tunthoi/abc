@@ -177,7 +177,7 @@ bool CRegionTypeClassifier::ClassfyRegion(
 
 		// output value
 		*pnNumObjBlocks = nNumObjBlocks;
-		*pnMeanObjBlocks = ( nNumObjBlocks != 0 ) ? (int)( dSumObjBlocks / nNumObjBlocks ) : 0;
+		*pnMeanObjBlocks = ( nNumObjBlocks != 0 ) ? (int)( dSumObjBlocks * 65535. / nNumObjBlocks + 0.5 ) : 0;
 	}
 
 	// delete temp buffers
