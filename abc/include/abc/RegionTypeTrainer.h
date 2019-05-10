@@ -40,7 +40,9 @@ namespace comed { namespace abc
 		// public methods
 	public:
 
-		// initialize
+		/// <summary>
+		/// initialize
+		/// </summary>
 		bool Initialize(void);
 
 		/// <summary>
@@ -48,12 +50,36 @@ namespace comed { namespace abc
 		/// </summary>
 		bool AddTrainingData( const cl::img::CImageBuf& img, const RegionType arrTypes[ ABC_REGION_DIVIDE_2 ] );
 
+		/// <summary>
+		/// clear all the training data
+		/// </summary>
+		void ClearTrainingData(void);
+
+		/// <summary>
+		/// get number of data instances
+		/// </summary>
+		int GetTrainingDataCount(void) const;
+
+		/// <summary>
+		/// load data from file
+		/// </summary>
+		bool AddTrainingDataFrom( LPCTSTR lpszFilePath );
+
+		/// <summary>
+		/// save the data to the file
+		/// </summary>
+		bool SaveTrainingData( LPCTSTR lpszFilePath );
+
+		/// <summary>
+		/// train and store the result.
+		/// </summary>
+		bool SaveTrainingResult( LPCTSTR lpszResultPath ) const;
+
+
 		//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// private data 
 	private:
 		CvANN_MLP* _pMLP;
 		CList< DataTrainingParams* > _listData;
-
-
 	};
 }} // comed::abc

@@ -147,3 +147,4 @@ bool CRegionClassifier::ClassfyRegion(
 
 	return true;
 }
+

@@ -43,6 +43,7 @@ namespace comed { namespace abc
 		/// </summary>
 		bool ClassfyRegion( const cl::img::CImageBuf& img, RegionType arrResult[ ABC_REGION_DIVIDE ] ) const;
 
+
 		//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// private data
 	private:

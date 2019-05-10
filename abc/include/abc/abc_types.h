@@ -11,6 +11,7 @@
 #define ABC_FEATURE_COUNT				14
 #define ABC_RESULT_COUNT				2
 
+#define ABC_MIN_TRAININGDATACOUNT		10
 
 namespace comed { namespace abc 
 {
