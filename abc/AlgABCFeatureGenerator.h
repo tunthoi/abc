@@ -8,7 +8,7 @@
 // forward declaration
 namespace cl { namespace img { class CImageBuf; }}
 
-namespace comed { namespace alg
+namespace comed { namespace abc
 {
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// abc feature generator

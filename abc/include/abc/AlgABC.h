@@ -5,7 +5,7 @@
 
 #include "clImgProc/ImageBuf.h"
 
-namespace comed { namespace alg
+namespace comed { namespace abc 
 {
 	struct ABCDetectedResult
 	{
@@ -33,8 +33,6 @@ namespace comed { namespace alg
 		//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// public methods
 	public:
-
-		static int GetDivideCount(void) { return s_nDevicedCount; }
 
 		// intialize 
 		bool Initialize(void);

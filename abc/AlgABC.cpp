@@ -5,12 +5,13 @@
 #include "abc/AlgABC.h"
 #include "AlgABCFeatureGenerator.h"
 
+// openCV2
 #include "opencv2/opencv.hpp"
 
 // cl
 #include "clUtils/path_utils.h"
 
-using namespace comed::alg;
+using namespace comed::abc;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -26,9 +27,8 @@ int CAlgABC::s_nDevicedCount = 8;
 // TrainingData
 struct CAlgABC::TrainingData
 {
-	int nRow;
-	int nCol;
-	double pData[TRAINING_PARAM_COUNT];
+	int nRow, nCol;
+	double pData[ TRAINING_PARAM_COUNT ];
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,11 +56,6 @@ CAlgABC::~CAlgABC(void)
 // intialize 
 bool CAlgABC::Initialize(void)
 {
-	CvANN_MLP* pInstance = reinterpret_cast<CvANN_MLP*>(  _pMLP );
-
-	if ( pInstance == nullptr )
-		return false;
-
 	const int anLayerInfo[] = { 14, 28, 2 };
 	const int nLayerInfoCount = sizeof( anLayerInfo ) / sizeof(int) ;
 
@@ -70,6 +65,10 @@ bool CAlgABC::Initialize(void)
 	{
 		layers.row( i ) = cv::Scalar( anLayerInfo[i] );
 	}
+
+	// create 
+	CvANN_MLP* pInstance = reinterpret_cast<CvANN_MLP*>( _pMLP );
+	ASSERT( pInstance != nullptr );
 
 	pInstance->create( layers );
 
@@ -82,9 +81,7 @@ bool CAlgABC::Initialize(void)
 void CAlgABC::CleanUp(void)
 {
 	CvANN_MLP* pInstance = reinterpret_cast<CvANN_MLP*>( _pMLP );
-
-	if ( pInstance == nullptr )
-		return;
+	ASSERT( pInstance != nullptr );
 
 	pInstance->clear();
 }

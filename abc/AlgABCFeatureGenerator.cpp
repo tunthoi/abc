@@ -7,7 +7,7 @@
 // cl
 #include "clImgProc/ImageBuf.h"
 
-using namespace comed::alg;
+using namespace comed::abc;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
