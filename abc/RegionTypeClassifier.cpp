@@ -2,7 +2,7 @@
 // Added by Hai Son
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "stdafx.h"
-#include "abc/RegionClassifier.h"
+#include "abc/RegionTypeClassifier.h"
 #include "FeatureGenerator.h"
 
 // openCV2
@@ -24,7 +24,7 @@ using namespace comed::abc;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // constructor
-CRegionClassifier::CRegionClassifier(void)
+CRegionTypeClassifier::CRegionTypeClassifier(void)
 {
 	_pMLP = new CvANN_MLP;
 	ASSERT( _pMLP );
@@ -32,14 +32,14 @@ CRegionClassifier::CRegionClassifier(void)
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // destructor
-CRegionClassifier::~CRegionClassifier(void)
+CRegionTypeClassifier::~CRegionTypeClassifier(void)
 {
 	delete _pMLP;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // load trained data for ABC algorithm
-bool CRegionClassifier::Initialize( LPCTSTR lpszPath )
+bool CRegionTypeClassifier::Initialize( LPCTSTR lpszPath )
 {
 	if ( CLU_IsPathExist( lpszPath ) )
 	{
@@ -70,7 +70,7 @@ bool CRegionClassifier::Initialize( LPCTSTR lpszPath )
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // do classfy 
-bool CRegionClassifier::ClassfyRegion( 
+bool CRegionTypeClassifier::ClassfyRegion( 
 							const cl::img::CImageBuf& img, RegionType arrResult[ABC_REGION_DIVIDE] ) const
 {
 	ASSERT( _pMLP );

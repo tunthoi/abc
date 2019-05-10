@@ -110,7 +110,7 @@ xcopy /y $(SolutionDir)..\external\opencv\lib\x86\bin\opencv_ml245.dll $(OutDir)
       </PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="FeatureGenerator.cpp" />
-    <ClCompile Include="RegionClassifier.cpp" />
+    <ClCompile Include="RegionTypeClassifier.cpp" />
     <ClCompile Include="RegionTypeTrainer.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -125,7 +125,7 @@ xcopy /y $(SolutionDir)..\external\opencv\lib\x86\bin\opencv_ml245.dll $(OutDir)
     <ClInclude Include="abc.logger.h" />
     <ClInclude Include="FeatureGenerator.h" />
     <ClInclude Include="include\abc\abc_types.h" />
-    <ClInclude Include="include\abc\RegionClassifier.h" />
+    <ClInclude Include="include\abc\RegionTypeClassifier.h" />
     <ClInclude Include="include\abc\RegionTypeTrainer.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />

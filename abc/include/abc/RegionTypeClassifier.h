@@ -15,19 +15,19 @@ namespace comed { namespace abc
 	/// <summary>
 	/// region classifier with pre-trained data
 	/// </summary>
-	class AFX_EXT_CLASS CRegionClassifier
+	class AFX_EXT_CLASS CRegionTypeClassifier
 	{
-		CL_NO_COPY_CONSTRUCTOR( CRegionClassifier )
-		CL_NO_ASSIGNMENT_OPERATOR( CRegionClassifier )
+		CL_NO_COPY_CONSTRUCTOR( CRegionTypeClassifier )
+		CL_NO_ASSIGNMENT_OPERATOR( CRegionTypeClassifier )
 
 	public:
 		/// <summary>
 		/// default constructor
 		/// </summary>
-		CRegionClassifier(void);
+		CRegionTypeClassifier(void);
 
 		// desrtructor
-		virtual ~CRegionClassifier(void);
+		virtual ~CRegionTypeClassifier(void);
 
 		//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// public methods 
