@@ -3,7 +3,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "stdafx.h"
 #include "abc/RegionTypeTrainer.h"
-#include "AlgABCFeatureGenerator.h"
+#include "FeatureGenerator.h"
 
 // openCV2
 #include "opencv2/opencv.hpp"
@@ -96,7 +96,7 @@ bool CRegionTypeTrainer::AddTrainingData(
 	const int h_divide = ABC_REGION_DIVIDE, v_divide = ABC_REGION_DIVIDE;
 
 	// feature generator
-	CAlgABCFeatureGenerator featureGenerator( img, h_divide, v_divide );
+	CFeatureGenerator featureGenerator( img, h_divide, v_divide );
 
 	double dbGOtsu, dbGInner, dbGInter;
 	featureGenerator.GetGOtsu( dbGOtsu, dbGInner, dbGInter );

@@ -2,7 +2,7 @@
 // Added by Hai Son
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "stdafx.h"
-#include "AlgABCFeatureGenerator.h"
+#include "FeatureGenerator.h"
 
 // cl
 #include "clImgProc/ImageBuf.h"
@@ -13,29 +13,33 @@ using namespace comed::abc;
 #define new DEBUG_NEW
 #endif 
 
+
 #define HISTSIZE		256
 #define HISTMAX			255
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // constructor
-CAlgABCFeatureGenerator::CAlgABCFeatureGenerator( const cl::img::CImageBuf& img, int divideW, int divideH )
+CFeatureGenerator::CFeatureGenerator( const cl::img::CImageBuf& img, int divideW, int divideH )
 {
 	ASSERT( img.IsValid() );
 	ASSERT( img.GetType() == cl::img::EIT_Gray16bit );
 
 	const int nWidth = img.GetWidth();
 	const int nHeight = img.GetHeight();
+	ASSERT( nWidth > 0 );
+	ASSERT( nHeight > 0 );
 
 	const WORD* pData = img.GetPixelDataWord();
 	ASSERT( pData != nullptr );
 
 	_imgBuf.create( nWidth, nHeight, cv::DataType<WORD>::type );
 
-	for( int i = 0; i < nHeight; i++ )
-	for( int j = 0; j < nWidth; j++ )
+	int nIndex = 0;
+	for ( int i = 0; i < nHeight; i++ )
+	for ( int j = 0; j < nWidth ; j++, nIndex++ )
 	{
-		_imgBuf.at<WORD>(i, j) = pData[ i * nWidth + j ];
+		_imgBuf.at<WORD>( i, j ) = pData[ nIndex ];
 	}
 
 	_nGlobalWidth = nWidth;
@@ -46,27 +50,25 @@ CAlgABCFeatureGenerator::CAlgABCFeatureGenerator( const cl::img::CImageBuf& img,
 
 	// _nRows 와 _nCols 로 나누어 정수만 취함. 나머지는 버림.
 	_nLocalHeight = _nGlobalHeight / _nRows;
-	_nLocalWidth = _nGlobalWidth / _nCols;
-
-	// [TODO] how to check error ?
+	_nLocalWidth  = _nGlobalWidth  / _nCols;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // destructor
-CAlgABCFeatureGenerator::~CAlgABCFeatureGenerator(void)
+CFeatureGenerator::~CFeatureGenerator(void)
 {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // GetGOtsu
-void CAlgABCFeatureGenerator::GetGOtsu( double& otsu, double& inner, double& inter ) const
+void CFeatureGenerator::GetGOtsu( double& otsu, double& inner, double& inter ) const
 {
 	this->CalOtsu( _imgBuf, otsu, inner, inter );	
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // GetGOtsu
-double CAlgABCFeatureGenerator::GetGMax(void) const
+double CFeatureGenerator::GetGMax(void) const
 {
 	double dmax, dmin;
 	cv::minMaxIdx( this->_imgBuf, &dmin, &dmax );
@@ -76,7 +78,7 @@ double CAlgABCFeatureGenerator::GetGMax(void) const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // GetGOtsu
-double CAlgABCFeatureGenerator::GetGMin(void) const
+double CFeatureGenerator::GetGMin(void) const
 {
 	double dmax, dmin;
 	cv::minMaxIdx( this->_imgBuf, &dmin, &dmax );
@@ -86,7 +88,7 @@ double CAlgABCFeatureGenerator::GetGMin(void) const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // GetGOtsu
-double CAlgABCFeatureGenerator::GetGMean(void) const
+double CFeatureGenerator::GetGMean(void) const
 {
 	cv::Mat avg(  1, 1, CV_32F );
 	cv::Mat sstd( 1, 1, CV_32F );
@@ -98,7 +100,7 @@ double CAlgABCFeatureGenerator::GetGMean(void) const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // GetGStd
-double CAlgABCFeatureGenerator::GetGStd(void) const
+double CFeatureGenerator::GetGStd(void) const
 {
 	cv::Mat avg(  1, 1, CV_32F );
 	cv::Mat sstd( 1, 1, CV_32F );
@@ -110,7 +112,7 @@ double CAlgABCFeatureGenerator::GetGStd(void) const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // GetLOtsu
-void CAlgABCFeatureGenerator::GetLOtsu( int col, int row, double& otsu, double& inner, double& inter ) const
+void CFeatureGenerator::GetLOtsu( int col, int row, double& otsu, double& inner, double& inter ) const
 {
 	cv::Rect rect( col * _nLocalWidth, row * _nLocalHeight, _nLocalWidth, _nLocalHeight );
 	cv::Mat tile( _imgBuf, rect );
@@ -120,7 +122,7 @@ void CAlgABCFeatureGenerator::GetLOtsu( int col, int row, double& otsu, double& 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // GetLMax
-double CAlgABCFeatureGenerator::GetLMax( int col, int row ) const
+double CFeatureGenerator::GetLMax( int col, int row ) const
 {
 	cv::Rect rect( col * _nLocalWidth, row * _nLocalHeight, _nLocalWidth, _nLocalHeight );
 	cv::Mat tile( _imgBuf, rect );
@@ -133,7 +135,7 @@ double CAlgABCFeatureGenerator::GetLMax( int col, int row ) const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // GetLMin
-double CAlgABCFeatureGenerator::GetLMin( int col, int row ) const
+double CFeatureGenerator::GetLMin( int col, int row ) const
 {
 	cv::Rect rect( col*_nLocalWidth, row*_nLocalHeight, _nLocalWidth, _nLocalHeight );
 	cv::Mat tile( _imgBuf, rect );
@@ -146,7 +148,7 @@ double CAlgABCFeatureGenerator::GetLMin( int col, int row ) const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // GetGOtsu
-double CAlgABCFeatureGenerator::GetLMean( int col, int row ) const
+double CFeatureGenerator::GetLMean( int col, int row ) const
 {
 	cv::Rect rect( col*_nLocalWidth, row*_nLocalHeight, _nLocalWidth, _nLocalHeight );
 	cv::Mat tile( _imgBuf, rect );
@@ -161,7 +163,7 @@ double CAlgABCFeatureGenerator::GetLMean( int col, int row ) const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // GetLStd
-double CAlgABCFeatureGenerator::GetLStd( int col, int row ) const
+double CFeatureGenerator::GetLStd( int col, int row ) const
 {
 	cv::Rect rect( col*_nLocalWidth, row*_nLocalHeight, _nLocalWidth, _nLocalHeight );
 	cv::Mat tile( _imgBuf, rect );
@@ -176,7 +178,7 @@ double CAlgABCFeatureGenerator::GetLStd( int col, int row ) const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // CalOtsu
-void CAlgABCFeatureGenerator::CalOtsu( const cv::Mat& buf, double& otsu, double& inner, double& inter ) const
+void CFeatureGenerator::CalOtsu( const cv::Mat& buf, double& otsu, double& inner, double& inter ) const
 {
 	int iHist[HISTSIZE];
 	int iCumHist[HISTSIZE];;

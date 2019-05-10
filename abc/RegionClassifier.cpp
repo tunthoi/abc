@@ -3,7 +3,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "stdafx.h"
 #include "abc/RegionClassifier.h"
-#include "AlgABCFeatureGenerator.h"
+#include "FeatureGenerator.h"
 
 // openCV2
 #include "opencv2/opencv.hpp"
@@ -84,7 +84,7 @@ bool CRegionClassifier::ClassfyRegion(
 	const int v_divide = ABC_REGION_DIVIDE;
 
 	// feature generator 
-	CAlgABCFeatureGenerator featureGenerator( img, h_divide, v_divide );
+	CFeatureGenerator featureGenerator( img, h_divide, v_divide );
 
 	cv::Mat feature	( h_divide * v_divide, 14, cv::DataType<double>::type );
 	cv::Mat result	( h_divide * v_divide,  2, cv::DataType<double>::type );

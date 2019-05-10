@@ -101,7 +101,6 @@ xcopy /y $(SolutionDir)..\external\opencv\lib\x86\bin\opencv_ml245.dll $(OutDir)
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="abc.logger.cpp" />
-    <ClCompile Include="AlgABC.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -110,7 +109,7 @@ xcopy /y $(SolutionDir)..\external\opencv\lib\x86\bin\opencv_ml245.dll $(OutDir)
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       </PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="AlgABCFeatureGenerator.cpp" />
+    <ClCompile Include="FeatureGenerator.cpp" />
     <ClCompile Include="RegionClassifier.cpp" />
     <ClCompile Include="RegionTypeTrainer.cpp" />
     <ClCompile Include="stdafx.cpp">
@@ -124,9 +123,8 @@ xcopy /y $(SolutionDir)..\external\opencv\lib\x86\bin\opencv_ml245.dll $(OutDir)
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="abc.logger.h" />
-    <ClInclude Include="AlgABCFeatureGenerator.h" />
+    <ClInclude Include="FeatureGenerator.h" />
     <ClInclude Include="include\abc\abc_types.h" />
-    <ClInclude Include="include\abc\AlgABC.h" />
     <ClInclude Include="include\abc\RegionClassifier.h" />
     <ClInclude Include="include\abc\RegionTypeTrainer.h" />
     <ClInclude Include="Resource.h" />
