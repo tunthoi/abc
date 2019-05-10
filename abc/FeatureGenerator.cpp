@@ -56,6 +56,19 @@ CFeatureGenerator::CFeatureGenerator( const cl::img::CImageBuf& img, int divideW
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// copy constructor
+CFeatureGenerator::CFeatureGenerator( const CFeatureGenerator& other )
+	: _imgBuf( other._imgBuf )
+	, _nGlobalWidth( other._nGlobalWidth )
+	, _nGlobalHeight( other._nGlobalHeight )
+	, _nRows( other._nRows )
+	, _nCols( other._nCols )
+	, _nLocalWidth( other._nLocalWidth )
+	, _nLocalHeight( other._nLocalHeight )
+{
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // destructor
 CFeatureGenerator::~CFeatureGenerator(void)
 {
@@ -197,36 +210,36 @@ void CFeatureGenerator::CalOtsu( const cv::Mat& buf, double& otsu, double& inner
 	double dInner[HISTSIZE];
 	double dInter[HISTSIZE];
 
-	double min, max;	
+	double dMin, dMax;	
 
-	cv::minMaxIdx( buf, &min, &max );
+	cv::minMaxIdx( buf, &dMin, &dMax );
 
 	memset( iHist, 0, sizeof(int)*HISTSIZE );
 
 	for( int r = 0; r < buf.rows; r++ )
 	for( int c = 0; c < buf.cols; c++ )
 	{
-		iHist[ (int)( (buf.at<unsigned short>( r, c ) - min ) / ( ( max - min ) / HISTMAX ) ) ] ++;
+		iHist[ (int)( (buf.at<unsigned short>( r, c ) - dMin ) / ( ( dMax - dMin ) / HISTMAX ) ) ] ++;
 	}
 
-	for( int i = 0; i < HISTSIZE; i++ )
+	iCumHist[0] = iHist[0];
+	iHistSum = iHist[0];
+
+	for ( int i=1; i<HISTSIZE; i++ )
 	{
-		if ( i == 0 ) 
-			iCumHist[i] = iHist[i];
-		else  		 
-			iCumHist[i] = iCumHist[i-1] + iHist[i];
+		iCumHist[i] = iCumHist[i-1] + iHist[i];
 		
 		iHistSum    = iHistSum + iHist[i];
 		iHistMulSum = iHistMulSum + ( iHist[i] * i );
 	}
 
-	for( int i = 0; i < HISTSIZE; i ++ )
+	for ( int i=0; i<HISTSIZE; i++ )
 	{
 		dWeightB[i] = iCumHist[i] / (double)iHistSum;
 		dWeightF[i] = 1.0 - dWeightB[i];
 	} 
 
-	for( int i = 0; i < HISTSIZE; i++ )
+	for ( int i = 0; i < HISTSIZE; i++ )
 	{
 		double dCumVarB = 0.0;
 		double dCumVarF = 0.0;

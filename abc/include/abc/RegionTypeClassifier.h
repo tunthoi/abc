@@ -43,6 +43,14 @@ namespace comed { namespace abc
 		/// </summary>
 		bool ClassfyRegion( const cl::img::CImageBuf& img, RegionType arrResult[ ABC_REGION_DIVIDE ] ) const;
 
+		//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// private methods
+	private:
+
+		// get global features, optimized 
+		static void _calcGlobalFeatures( 
+			const cl::img::CImageBuf& img, 
+			double* pdbGMax, double* pdbGMin, double* pdbGMean, double* pdbGStd );
 
 		//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// private data

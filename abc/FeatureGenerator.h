@@ -4,6 +4,7 @@
 #pragma once
 
 #include "opencv2/opencv.hpp"
+#include "clUtils/defines.h"
 
 // forward declaration
 namespace cl { namespace img { class CImageBuf; }}
@@ -14,10 +15,18 @@ namespace comed { namespace abc
 	// abc feature generator
 	class CFeatureGenerator
 	{
+		CL_NO_DEFAULT_CONSTRUCTOR( CFeatureGenerator )
+
 		//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// contructor & destructor
 	public:
+		// constructor
 		CFeatureGenerator( const cl::img::CImageBuf& img, int divideW, int divideH );
+
+		// copy constructor
+		CFeatureGenerator( const CFeatureGenerator& other );
+
+		// destructor
 		virtual ~CFeatureGenerator(void);
 
 		//////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -45,13 +54,13 @@ namespace comed { namespace abc
 	private:
 		cv::Mat _imgBuf;
 
-		// 전체 이미지의 가로 : Width 와 세로 : Height
+		// AuA¼ AI¹IAoAC °¡·I : Width ¿I ¼¼·I : Height
 		int _nGlobalWidth, _nGlobalHeight;
 
-		// 로컬 이미지의 _nRows : 가로축 갯수, _nCols : 세로축 갯수
+		// ·IAA AI¹IAoAC _nRows : °¡·IAa °¹¼o, _nCols : ¼¼·IAa °¹¼o
 		int _nRows, _nCols;
 
-		// 전체 이미지의 가로 : Width 와 세로 : Height
+		// AuA¼ AI¹IAoAC °¡·I : Width ¿I ¼¼·I : Height
 		int _nLocalWidth, _nLocalHeight;
 	};
 }}
