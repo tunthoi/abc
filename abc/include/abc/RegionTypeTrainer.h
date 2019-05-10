@@ -48,7 +48,9 @@ namespace comed { namespace abc
 		/// <summary>
 		/// add training data
 		/// </summary>
-		bool AddTrainingData( const cl::img::CImageBuf& img, const RegionType arrTypes[ ABC_REGION_DIVIDE_2 ] );
+		bool AddTrainingData( 
+				int nKv, float fMa,
+				const cl::img::CImageBuf& img, const RegionType arrTypes[ ABC_REGION_DIVIDE_2 ] );
 
 		/// <summary>
 		/// clear all the training data
@@ -64,6 +66,11 @@ namespace comed { namespace abc
 		/// load data from file
 		/// </summary>
 		bool AddTrainingDataFrom( LPCTSTR lpszFilePath );
+
+		/// <summary>
+		/// get current data
+		/// </summary>
+		bool GetCurrentData( RegionType arrTypes[ ABC_REGION_DIVIDE_2 ] ) const;
 
 		/// <summary>
 		/// save the data to the file

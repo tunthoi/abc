@@ -21,6 +21,9 @@ using namespace comed::abc;
 #define new DEBUG_NEW 
 #endif 
 
+#define DATA_FILE_VERSION			_T("CXVIEW3.ABC.TRAININGDATA.V.1")
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // internal data types
 struct CRegionTypeTrainer::DataTrainingParams
@@ -81,6 +84,7 @@ bool CRegionTypeTrainer::Initialize(void)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // add training data
 bool CRegionTypeTrainer::AddTrainingData( 
+	int nKv, float fMa,
 	const cl::img::CImageBuf& img, const RegionType arrTypes[ ABC_REGION_DIVIDE_2 ] )
 {
 	ASSERT( arrTypes != nullptr );
@@ -99,6 +103,9 @@ bool CRegionTypeTrainer::AddTrainingData(
 	{
 		ppdbFeatures[ bi ] = new double [ ABC_FEATURE_COUNT ];
 		ASSERT( ppdbFeatures[ bi ] );
+
+		ppdbFeatures[ bi ][ kABCFeatureId_Global_KV ] = (double) nKv;
+		ppdbFeatures[ bi ][ kABCFeatureId_Global_MA ] = (double) fMa;
 	}
 
 	// feature generation
@@ -192,14 +199,15 @@ bool CRegionTypeTrainer::SaveTrainingResult( LPCTSTR lpszResultPath_Objec, LPCTS
 
 	// do train
 	ASSERT( _pMLP_Objec );
-	const int nCountObjec = 
-		_pMLP_Objec->train( feature, resultObjec, cv::Mat(), cv::Mat(), params, CvANN_MLP::NO_INPUT_SCALE | CvANN_MLP::NO_OUTPUT_SCALE );
+	const int nCountObjec = _pMLP_Objec->train( feature, resultObjec, cv::Mat(), cv::Mat(), params, 
+												CvANN_MLP::NO_INPUT_SCALE | CvANN_MLP::NO_OUTPUT_SCALE );
 
 	ASSERT( _pMLP_Metal );
-	const int nCountMetal = 
-		_pMLP_Metal->train( feature, resultMetal, cv::Mat(), cv::Mat(), params, CvANN_MLP::NO_INPUT_SCALE | CvANN_MLP::NO_OUTPUT_SCALE );
+	const int nCountMetal = _pMLP_Metal->train( feature, resultMetal, cv::Mat(), cv::Mat(), params, 
+												CvANN_MLP::NO_INPUT_SCALE | CvANN_MLP::NO_OUTPUT_SCALE );
 
-	if ( nCountObjec > 0 && nCountMetal > 0 )	{
+	if ( nCountObjec > 0 && nCountMetal > 0 )
+	{
 		// TODO: how to check ?
 		_pMLP_Objec->save( CT2A( lpszResultPath_Objec ) );
 		_pMLP_Metal->save( CT2A( lpszResultPath_Metal ) );
@@ -313,6 +321,7 @@ bool CRegionTypeTrainer::AddTrainingDataFrom( LPCTSTR lpszFilePath )
 		CStdioFile file( lpszFilePath, CFile::modeRead );
 		CString strLine;
 		int nLineCount = 0;
+		bool bFirstLineParsed = false;
 
 		while ( bOk && file.ReadString( strLine ) )
 		{
@@ -321,6 +330,15 @@ bool CRegionTypeTrainer::AddTrainingDataFrom( LPCTSTR lpszFilePath )
 			strLine.Trim();
 			if ( strLine.IsEmpty() )
 				continue;
+
+			if ( ! bFirstLineParsed )
+			{
+				if ( strLine == DATA_FILE_VERSION )
+				{
+					bFirstLineParsed = true;
+					continue;
+				}
+			}
 
 			DataTrainingParams *pData = new DataTrainingParams;
 			ASSERT( pData );
@@ -359,6 +377,31 @@ bool CRegionTypeTrainer::AddTrainingDataFrom( LPCTSTR lpszFilePath )
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// get data 
+bool CRegionTypeTrainer::GetCurrentData( RegionType arrTypes[ ABC_REGION_DIVIDE_2 ] ) const 
+{
+	for ( int bi=0; bi<ABC_REGION_DIVIDE_2; bi++ )
+	{
+		arrTypes[ bi ].bBackground = false;
+		arrTypes[ bi ].bMetal = false;
+	}
+
+	POSITION pos = _listData.GetHeadPosition();
+	while ( pos )
+	{
+		DataTrainingParams* pData = _listData.GetNext( pos );
+		ASSERT( pData );
+
+		const int bi = pData->nCol + pData->nRow * ABC_REGION_DIVIDE;
+
+		arrTypes[ bi ].bBackground = pData->adResults[ kABCResultId_Background ] > 0.0 ? true : false;
+		arrTypes[ bi ].bMetal      = pData->adResults[ kABCResultId_Metal      ] > 0.0 ? true : false;
+	}
+
+	return true;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // save the data to the file
 bool CRegionTypeTrainer::SaveTrainingData( LPCTSTR lpszFilePath )
 {
@@ -373,6 +416,9 @@ bool CRegionTypeTrainer::SaveTrainingData( LPCTSTR lpszFilePath )
 	TRY 
 	{
 		CStdioFile file( lpszFilePath, CFile::modeWrite | CFile::modeCreate );
+
+		// write version
+		file.WriteString( CString( DATA_FILE_VERSION ) + _T("\n") );
 
 		POSITION pos = _listData.GetHeadPosition();
 		while ( pos )
