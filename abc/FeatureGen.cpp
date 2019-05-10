@@ -14,6 +14,9 @@
 #include <cmath>
 #include <omp.h>
 
+// log
+#include "abc.logger.h"
+
 using namespace comed::abc;
 
 #ifdef _DEBUG
@@ -27,22 +30,26 @@ using namespace comed::abc;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // only public methods
-bool CFeatureGen::CalcFeatures( IN const cl::img::CImageBuf & img__, OUT double** adbFeatures )
+bool CFeatureGen::CalcFeatures( IN const cl::img::CImageBuf & imgOrg, OUT double** adbFeatures )
 {
-	if ( ! img__.IsValid() )
+	if ( ! imgOrg.IsValid() )
 		return false;
 
 	// make half image if too large
-	const cl::img::CImageBuf* pImg = &img__;
-	cl::img::CImageBuf imgHalf;
+	cl::img::CImageBuf img;
 
-	if ( img__.GetWidth() * img__.GetHeight() >= THRESHOLD_IMG_SIZE )
+	if ( imgOrg.GetWidth() * imgOrg.GetHeight() >= THRESHOLD_IMG_SIZE )
 	{
-		VERIFY( cl::img::utils::ResizeWholeImage( img__, img__.GetWidth() / 2, img__.GetHeight() / 2, 
-													cl::img::utils::EINTP_Nearest, &imgHalf ) );
-		pImg = &imgHalf;
+		VERIFY( cl::img::utils::ResizeWholeImage( imgOrg, imgOrg.GetWidth() / 2, imgOrg.GetHeight() / 2, 
+													cl::img::utils::EINTP_Nearest, &img ) );
 	}
-	const cl::img::CImageBuf& img = *pImg;
+	else 
+	{
+        // It can be updated while computing in multi-thread environment.
+        // If you lock it, it will slow down because the other operation is stopped during the calculation time.
+        // Copy the image to the next best.
+		img.CopyFrom( imgOrg );
+	}
 
 	// asserting
 	ASSERT( img.GetType() == cl::img::EIT_Gray16bit );
@@ -304,8 +311,21 @@ void CFeatureGen::_calcOtsu(
 		for ( int x=0; x<nBlkW; x++ )
 		{
 			const register int nBin = (int)( ( pwLine[ x ] - wMin ) * dFactor );
-			ASSERT( nBin >= 0 );
-			ASSERT( nBin < HISTSIZE );
+
+#ifdef _DEBUG 
+			if ( nBin < 0 )
+			{
+				LOG_ERROR( _T("Invalid histogram: Min %d, Max %d, Pixel %d, dFactor %g, nBin %d"),
+					wMin, wMax, pwLine[ x ], dFactor, nBin );
+				ASSERT( 0 );
+			}
+			if ( nBin >= HISTSIZE )
+			{
+				LOG_ERROR( _T("Invalid histogram: Min %d, Max %d, Pixel %d, dFactor %g, nBin %d"),
+					wMin, wMax, pwLine[ x ], dFactor, nBin );
+				ASSERT( 0 );
+			}
+#endif 
 
 			iHist[ nBin ] ++;
 		}
