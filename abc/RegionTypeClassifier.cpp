@@ -25,26 +25,30 @@ using namespace comed::abc;
 // constructor
 CRegionTypeClassifier::CRegionTypeClassifier(void)
 {
-	_pMLP = new CvANN_MLP;
-	ASSERT( _pMLP );
+	_pMLP_Objec = new CvANN_MLP;
+	ASSERT( _pMLP_Objec );
+
+	_pMLP_Metal = new CvANN_MLP;
+	ASSERT( _pMLP_Metal );
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // destructor
 CRegionTypeClassifier::~CRegionTypeClassifier(void)
 {
-	delete _pMLP;
+	delete _pMLP_Objec;
+	delete _pMLP_Metal;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // load trained data for ABC algorithm
-bool CRegionTypeClassifier::Initialize( LPCTSTR lpszPath )
+bool CRegionTypeClassifier::Initialize( LPCTSTR lpszPath_Objec, LPCTSTR lpszPath_Metal )
 {
-	if ( CLU_IsPathExist( lpszPath ) )
+	if ( CLU_IsPathExist( lpszPath_Objec ) && CLU_IsPathExist( lpszPath_Metal ) )
 	{
-		LOG_DEBUG( _T("Classifier tries to load data from [%s]"), lpszPath );
+		LOG_DEBUG( _T("Classifier tries to load data from [%s] and [%s]"), lpszPath_Objec, lpszPath_Metal );
 
-		const int anLayerInfo[] = { ABC_FEATURE_COUNT, ABC_FEATURE_COUNT * 2, ABC_RESULT_COUNT };
+		const int anLayerInfo[] = { ABC_FEATURE_COUNT, ABC_FEATURE_COUNT * 2, 1 };
 		const int nLayerInfoCount = sizeof( anLayerInfo ) / sizeof(int) ;
 
 		cv::Mat layers( nLayerInfoCount, 1, CV_32SC1 );
@@ -55,14 +59,17 @@ bool CRegionTypeClassifier::Initialize( LPCTSTR lpszPath )
 		}
 
 		// create layers
-		_pMLP->create( layers );
+		_pMLP_Objec->create( layers );
+		_pMLP_Metal->create( layers );
 
 		// load the data
-		_pMLP->load( CT2A( lpszPath ) );
+		_pMLP_Objec->load( CT2A( lpszPath_Objec ) );
+		_pMLP_Metal->load( CT2A( lpszPath_Metal ) );
+
 		return true;
 	}
 
-	LOG_ERROR( _T("No trained data exists [%s]"), lpszPath );
+	LOG_ERROR( _T("No trained data exists - [%s] and [%s]"), lpszPath_Objec, lpszPath_Metal );
 
 	return false;
 }
@@ -83,7 +90,9 @@ bool CRegionTypeClassifier::ClassfyRegion(
 				OUT		int* pnMeanObjBlocks
 			) const
 {
-	ASSERT( _pMLP );
+	ASSERT( _pMLP_Objec );
+	ASSERT( _pMLP_Metal );
+
 	ASSERT( arrResult != nullptr );
 	ASSERT( pnNumObjBlocks );
 	ASSERT( pnMeanObjBlocks );
@@ -116,7 +125,8 @@ bool CRegionTypeClassifier::ClassfyRegion(
 	// do predict
 	{
 		cv::Mat feature	( nNumBlocks, ABC_FEATURE_COUNT, cv::DataType<double>::type );
-		cv::Mat result	( nNumBlocks, ABC_RESULT_COUNT,  cv::DataType<double>::type );
+		cv::Mat resultObjec	( nNumBlocks, 1,  cv::DataType<double>::type );
+		cv::Mat resultMetal ( nNumBlocks, 1,  cv::DataType<double>::type );
 
 		for ( int by=0; by<ABC_REGION_DIVIDE; by++ )
 		for ( int bx=0; bx<ABC_REGION_DIVIDE; bx++ )
@@ -126,12 +136,14 @@ bool CRegionTypeClassifier::ClassfyRegion(
 			for ( int i=0; i<ABC_FEATURE_COUNT; i++ )
 				feature.at<double>( bi,  i ) = ppDblFeatures[ bi ][ i ];
 
-			for ( int i=0; i<ABC_RESULT_COUNT; i++ )
-				result.at<double>( bi,  i ) = 0.;
+			resultObjec.at<double>( bi ) = 0.;
+			resultMetal.at<double>( bi ) = 0.;
 		}
 
-		const float s = _pMLP->predict( feature, result );
-		UNREFERENCED_PARAMETER( s );
+		const float s1 = _pMLP_Objec->predict( feature, resultObjec );
+		const float s2 = _pMLP_Metal->predict( feature, resultMetal );
+		UNREFERENCED_PARAMETER( s1 );
+		UNREFERENCED_PARAMETER( s2 );
 
 		// make output
 		int nNumObjBlocks = 0;
@@ -149,8 +161,8 @@ bool CRegionTypeClassifier::ClassfyRegion(
 			}
 			else 
 			{
-				const bool bMetal = ( result.at<double>(bi, 0) > 0.0 );
-				const bool bBackg = ( result.at<double>(bi, 1) > 0.0 );
+				const bool bMetal = ( resultMetal.at<double>(bi, 0) > 0.0 );
+				const bool bBackg = ( resultObjec.at<double>(bi, 1) > 0.0 );
 
 				arrResult[ bi ].bMetal = bMetal;
 				arrResult[ bi ].bBackground = bBackg;
@@ -178,3 +190,4 @@ bool CRegionTypeClassifier::ClassfyRegion(
 
 	return true;
 }
+

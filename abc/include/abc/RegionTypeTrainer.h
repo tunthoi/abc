@@ -73,7 +73,8 @@ namespace comed { namespace abc
 		/// <summary>
 		/// train and store the result.
 		/// </summary>
-		bool SaveTrainingResult( LPCTSTR lpszResultPath ) const;
+		bool SaveTrainingResult( LPCTSTR lpszResultPath_Objec, LPCTSTR lpszResultPath_Metal ) const;
+
 
 		//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// private methods
@@ -83,7 +84,7 @@ namespace comed { namespace abc
 		//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// private data 
 	private:
-		CvANN_MLP* _pMLP;
+		CvANN_MLP *_pMLP_Objec, *_pMLP_Metal;
 		CList< DataTrainingParams* > _listData;
 	};
 }} // comed::abc

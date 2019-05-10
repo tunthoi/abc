@@ -34,8 +34,11 @@ struct CRegionTypeTrainer::DataTrainingParams
 // default constructor
 CRegionTypeTrainer::CRegionTypeTrainer(void)
 {
-	_pMLP = new CvANN_MLP;
-	ASSERT( _pMLP );
+	_pMLP_Objec = new CvANN_MLP;
+	ASSERT( _pMLP_Objec );
+
+	_pMLP_Metal = new CvANN_MLP;
+	ASSERT( _pMLP_Metal );
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -44,16 +47,15 @@ CRegionTypeTrainer::~CRegionTypeTrainer(void)
 {
 	ClearTrainingData();
 
-	delete _pMLP;
+	delete _pMLP_Objec;
+	delete _pMLP_Metal;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize
 bool CRegionTypeTrainer::Initialize(void)
 {
-	ASSERT( _pMLP );
-
-	const int anLayerInfo[] = { ABC_FEATURE_COUNT, ABC_FEATURE_COUNT * 2, ABC_RESULT_COUNT };
+	const int anLayerInfo[] = { ABC_FEATURE_COUNT, ABC_FEATURE_COUNT * 2, 1 };
 	const int nLayerInfoCount = sizeof( anLayerInfo ) / sizeof(int) ;
 
 	cv::Mat layers( nLayerInfoCount, 1, CV_32SC1 );
@@ -64,7 +66,11 @@ bool CRegionTypeTrainer::Initialize(void)
 	}
 
 	// create 
-	_pMLP->create( layers );
+	ASSERT( _pMLP_Objec );
+	_pMLP_Objec->create( layers );
+
+	ASSERT( _pMLP_Metal );
+	_pMLP_Metal->create( layers );
 
 	// clear previous data
 	ClearTrainingData();
@@ -133,14 +139,10 @@ bool CRegionTypeTrainer::AddTrainingData(
 	return true;
 }
 
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // train and save trained data to lpszPath
-bool CRegionTypeTrainer::SaveTrainingResult( LPCTSTR lpszResultPath ) const
+bool CRegionTypeTrainer::SaveTrainingResult( LPCTSTR lpszResultPath_Objec, LPCTSTR lpszResultPath_Metal ) const
 {
-	ASSERT( _pMLP );
-	ASSERT( lpszResultPath != nullptr );
-
 	// training data count
 	const int nTrainingDataCount = static_cast<int>( _listData.GetCount() );
 
@@ -151,8 +153,9 @@ bool CRegionTypeTrainer::SaveTrainingResult( LPCTSTR lpszResultPath ) const
 	}
 
 	// open cv
-	cv::Mat feature( nTrainingDataCount, ABC_FEATURE_COUNT, cv::DataType<double>::type );
-	cv::Mat result ( nTrainingDataCount, ABC_RESULT_COUNT,  cv::DataType<double>::type );
+	cv::Mat feature		( nTrainingDataCount, ABC_FEATURE_COUNT, cv::DataType<double>::type );
+	cv::Mat resultObjec	( nTrainingDataCount, 1,  cv::DataType<double>::type );
+	cv::Mat resultMetal ( nTrainingDataCount, 1,  cv::DataType<double>::type );
 
 	int nIndex = 0;
 	POSITION pos = _listData.GetHeadPosition();
@@ -169,10 +172,8 @@ bool CRegionTypeTrainer::SaveTrainingResult( LPCTSTR lpszResultPath ) const
 		}
 
 		// result
-		for ( int i=0; i<ABC_RESULT_COUNT; i++ )
-		{
-			result.at<double>( nIndex, i ) = pData->adResults[ i ];
-		}
+		resultObjec.at<double>( nIndex ) = pData->adResults[ kABCResultId_Background ];
+		resultMetal.at<double>( nIndex ) = pData->adResults[ kABCResultId_Metal      ];
 
 		nIndex ++;
 	}
@@ -189,12 +190,20 @@ bool CRegionTypeTrainer::SaveTrainingResult( LPCTSTR lpszResultPath ) const
 	params.term_crit = criteria;
 
 	// do train
-	const int nCount = _pMLP->train( feature, result, cv::Mat(), cv::Mat(), params, CvANN_MLP::NO_INPUT_SCALE );
+	ASSERT( _pMLP_Objec );
+	const int nCountObjec = 
+		_pMLP_Objec->train( feature, resultObjec, cv::Mat(), cv::Mat(), params, CvANN_MLP::NO_INPUT_SCALE );
 
-	if ( nCount > 0 )
+	ASSERT( _pMLP_Metal );
+	const int nCountMetal = 
+		_pMLP_Metal->train( feature, resultMetal, cv::Mat(), cv::Mat(), params, CvANN_MLP::NO_INPUT_SCALE );
+
+	if ( nCountObjec > 0 && nCountMetal > 0 )
 	{
 		// TODO: how to check ?
-		_pMLP->save( CT2A( lpszResultPath ) );
+		_pMLP_Objec->save( CT2A( lpszResultPath_Objec ) );
+		_pMLP_Metal->save( CT2A( lpszResultPath_Metal ) );
+
 		return true;
 	}
 

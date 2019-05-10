@@ -36,10 +36,10 @@ namespace comed { namespace abc
 		/// <summary>
 		/// initialize the classfier with the pre-trained data
 		/// </summary>
-		bool Initialize( LPCTSTR lpszDataPath );
+		bool Initialize( LPCTSTR lpszResultPath_Objec, LPCTSTR lpszResultPath_Metal );
 
 		/// <summary>
-		/// classify the region
+		/// classfy the region
 		/// </summary>
 		bool ClassfyRegion( 
 				IN		const cl::img::CImageBuf& img, 
@@ -49,18 +49,10 @@ namespace comed { namespace abc
 			) const;
 
 		//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		// private methods
-	private:
-
-		// get global features, optimized 
-		static void _calcGlobalFeatures( 
-			const cl::img::CImageBuf& img, 
-			double* pdbGMax, double* pdbGMin, double* pdbGMean, double* pdbGStd );
-
-		//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// private data
 	private:
-		CvANN_MLP* _pMLP;
+		CvANN_MLP* _pMLP_Objec;
+		CvANN_MLP* _pMLP_Metal;
 	};
 
 }} // comed::abc 
