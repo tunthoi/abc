@@ -77,10 +77,16 @@ static inline float _calcTime( const LARGE_INTEGER& llFreq, const LARGE_INTEGER&
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // do classfy 
 bool CRegionTypeClassifier::ClassfyRegion( 
-							const cl::img::CImageBuf& img, RegionType arrResult[ABC_REGION_DIVIDE] ) const
+				IN		const cl::img::CImageBuf& img, 
+				OUT		RegionType arrResult[ ABC_REGION_DIVIDE ],
+				OUT		int* pnNumObjBlocks,
+				OUT		int* pnMeanObjBlocks
+			) const
 {
 	ASSERT( _pMLP );
 	ASSERT( arrResult != nullptr );
+	ASSERT( pnNumObjBlocks );
+	ASSERT( pnMeanObjBlocks );
 
 	if ( ! img.IsValid() )
 		return false;
@@ -128,6 +134,9 @@ bool CRegionTypeClassifier::ClassfyRegion(
 		UNREFERENCED_PARAMETER( s );
 
 		// make output
+		int nNumObjBlocks = 0;
+		double dSumObjBlocks = 0.;
+
 		for ( int bi=0; bi<nNumBlocks; bi++ )
 		{
 			const int bx = bi % ABC_REGION_DIVIDE;
@@ -145,8 +154,18 @@ bool CRegionTypeClassifier::ClassfyRegion(
 
 				arrResult[ bi ].bMetal = bMetal;
 				arrResult[ bi ].bBackground = bBackg;
+
+				if ( ! bBackg && ! bMetal )
+				{
+					nNumObjBlocks ++;
+					dSumObjBlocks += ppDblFeatures[ bi ][ kABCFeatureId_Global_Mean ];
+				}
 			}
 		}
+
+		// output value
+		*pnNumObjBlocks = nNumObjBlocks;
+		*pnMeanObjBlocks = ( nNumObjBlocks != 0 ) ? (int)( dSumObjBlocks / nNumObjBlocks ) : 0;
 	}
 
 	// delete temp buffers
@@ -159,4 +178,3 @@ bool CRegionTypeClassifier::ClassfyRegion(
 
 	return true;
 }
-

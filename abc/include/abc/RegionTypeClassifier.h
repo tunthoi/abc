@@ -39,9 +39,14 @@ namespace comed { namespace abc
 		bool Initialize( LPCTSTR lpszDataPath );
 
 		/// <summary>
-		/// classfy the region
+		/// classify the region
 		/// </summary>
-		bool ClassfyRegion( const cl::img::CImageBuf& img, RegionType arrResult[ ABC_REGION_DIVIDE ] ) const;
+		bool ClassfyRegion( 
+				IN		const cl::img::CImageBuf& img, 
+				OUT		RegionType arrResult[ ABC_REGION_DIVIDE ],
+				OUT		int* pnNumObjBlocks,
+				OUT		int* pnMeanObjBlocks
+			) const;
 
 		//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// private methods
