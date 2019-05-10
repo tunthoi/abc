@@ -86,22 +86,25 @@ bool CFeatureGen::CalcFeatures( IN const cl::img::CImageBuf & img__, OUT double*
 	}
 
 	// global otsu
-	double dGlobalOtsu = 0., dGlobalInner = 0., dGlobalInter = 0.;
+	double dGlobalOtsu = 0.5, dGlobalInner = 0.5, dGlobalInter = 0.5, dGlobalMode = 0.5;
 
 	_calcOtsu( 
 		pwSrc + nBlkW + nBlkH * nImgW,		// exclude boundary blocks
 		nImgW,								// strider 
 		nBlkW * ( ABC_REGION_DIVIDE - 2 ),
 		nBlkH * ( ABC_REGION_DIVIDE - 2 ) , 
-		wGlobalMin, wGlobalMax, &dGlobalOtsu, &dGlobalInner, &dGlobalInter );
+		wGlobalMin, wGlobalMax, &dGlobalOtsu, &dGlobalInner, &dGlobalInter, &dGlobalMode );
 
 	// local otsu
+	double adLocalOtsu[ ABC_REGION_DIVIDE_2 ];
+	double adLocalMode[ ABC_REGION_DIVIDE_2 ];
+
 	for ( int bi=0; bi<ABC_REGION_DIVIDE_2; bi++ )
 	{
 		const int bx = bi % ABC_REGION_DIVIDE;
 		const int by = bi / ABC_REGION_DIVIDE;
 
-		double dbLocalOtsu = 0.5, dbLocalInner = 0.5, dbLocalInter = 0.5;
+		double dLocalOtsu = 0.5, dLocalInner = 0.5, dLocalInter = 0.5, dLocalMode = 0.5;
 
 		if ( bx == 0 || bx == ABC_REGION_DIVIDE - 1 || by == 0 || by == ABC_REGION_DIVIDE - 1 )
 		{
@@ -112,15 +115,11 @@ bool CFeatureGen::CalcFeatures( IN const cl::img::CImageBuf & img__, OUT double*
 			const WORD* pwBlk = pwSrc + ( bx * nBlkW ) + ( by * nBlkH ) * nImgW;
 
 			_calcOtsu( pwBlk, nImgW, nBlkW, nBlkH, awLocalMin[ bi ], awLocalMax[ bi ], 
-							&dbLocalOtsu, &dbLocalInner, &dbLocalInter );
+							&dLocalOtsu, &dLocalInner, &dLocalInter, &dLocalMode );
 		}
 		
-		double* pdbFeatures = adbFeatures[ bi ];
-		ASSERT( pdbFeatures );
-
-		pdbFeatures[ kABCFeatureId_Local_Otsu	] = dbLocalOtsu;
-		pdbFeatures[ kABCFeatureId_Local_Inner	] = dbLocalInner;
-		pdbFeatures[ kABCFeatureId_Local_Inter	] = dbLocalInter;
+		adLocalOtsu[ bi ] = dLocalOtsu;
+		adLocalMode[ bi ] = dLocalMode;
 	}
 
 	// block population
@@ -141,21 +140,21 @@ bool CFeatureGen::CalcFeatures( IN const cl::img::CImageBuf & img__, OUT double*
 		ASSERT( pdFeatures );
 
 		pdFeatures[ kABCFeatureId_Global_Otsu	]	= dGlobalOtsu;
-		pdFeatures[ kABCFeatureId_Global_Inner	]	= dGlobalInner;
-		pdFeatures[ kABCFeatureId_Global_Inter	]	= dGlobalInter;
+		pdFeatures[ kABCFeatureId_Global_Max	]	= dGlobalMax	/ 65535.;
+		pdFeatures[ kABCFeatureId_Global_Min	]	= dGlobalMin	/ 65535.;
+		pdFeatures[ kABCFeatureId_Global_Mean	]	= dGlobalMean	/ 65535.;
+		pdFeatures[ kABCFeatureId_Global_Std	]	= dGlobalStd	/ 65535.;
+		pdFeatures[ kABCFeatureId_Global_Mode	]	= dGlobalMode;
 
-		pdFeatures[ kABCFeatureId_Global_Max   ]	= dGlobalMax;
-		pdFeatures[ kABCFeatureId_Global_Min   ]	= dGlobalMin;
-		pdFeatures[ kABCFeatureId_Global_Mean  ]	= dGlobalMean;
-		pdFeatures[ kABCFeatureId_Global_Std   ]	= dGlobalStd;
+		const double dLocalMean = adLocalSum[ bi ] / dBlkPopulation;
+		const double dLocalStd  = sqrt( CLU_LBOUND( adLocalSoS[ bi ] / dBlkPopulation - CLU_SQUARE( dLocalMean ), 0. ) );
 
-		pdFeatures[ kABCFeatureId_Local_Max   ]	= (double) awLocalMax[ bi ];
-		pdFeatures[ kABCFeatureId_Local_Min   ]	= (double) awLocalMin[ bi ];
-		pdFeatures[ kABCFeatureId_Local_Mean  ]	= adLocalSum[ bi ] / dBlkPopulation;
-
-		// FIX: When an image having the same value is input, it may have a value smaller than 0 due to an error.
-		pdFeatures[ kABCFeatureId_Local_Std   ]	= sqrt( CLU_LBOUND( 
-					adLocalSoS[ bi ] / dBlkPopulation - CLU_SQUARE( pdFeatures[ kABCFeatureId_Local_Mean ] ), 0. ) );
+		pdFeatures[ kABCFeatureId_Local_Otsu	]	= adLocalOtsu[ bi ];
+		pdFeatures[ kABCFeatureId_Local_Max		]	= (double) awLocalMax[ bi ] / 65535.;
+		pdFeatures[ kABCFeatureId_Local_Min		]	= (double) awLocalMin[ bi ] / 65535.;
+		pdFeatures[ kABCFeatureId_Local_Mean	]	= dLocalMean				/ 65535.;
+		pdFeatures[ kABCFeatureId_Local_Std		]	= dLocalStd					/ 65535.;
+		pdFeatures[ kABCFeatureId_Local_Mode	]	= adLocalMode[ bi ];
 	}
 
 	return true;
@@ -285,11 +284,11 @@ void CFeatureGen::_calcBlockStatistics( const WORD* pwBlk, int nStrider, int nBl
 // CalOtsu
 void CFeatureGen::_calcOtsu( 
 					const WORD* pwSrc, int nStrider, int nBlkW, int nBlkH, WORD wMin, WORD wMax,
-					double* pdOtsu, double* pdInner, double* pdInter ) 
+					double* pdOtsu, double* pdInner, double* pdInter, double* pdMode ) 
 {
 	if ( wMin == wMax )
 	{
-		*pdOtsu  = 0.5; *pdInner = 0.5; *pdInter = 0.5;
+		*pdOtsu  = 0.5; *pdInner = 0.5; *pdInter = 0.5; *pdMode = 0.5;
 		return;
 	}
 
@@ -317,6 +316,8 @@ void CFeatureGen::_calcOtsu(
 	int iCumMulHist[ HISTSIZE ];
 	int iHistSum = 0, iHistMulSum = 0;
 	{
+		int nMode = 0, nModeValue = iHist[ 0 ];
+
 		for ( int i=0; i<HISTSIZE; i++ )
 		{
 			iHistSum	+= iHist[ i ];
@@ -324,7 +325,16 @@ void CFeatureGen::_calcOtsu(
 
 			iCumHist[ i ] = iHistSum;
 			iCumMulHist[ i ] = iHistMulSum;
+
+			if ( nModeValue < iHist[ i ] )
+			{
+				nModeValue = iHist[ i ];
+				nMode = i;
+			}
 		}
+
+		// normalized mode
+		*pdMode = (double) nMode / HISTSIZE;
 	}
 
 	// just for simplicity

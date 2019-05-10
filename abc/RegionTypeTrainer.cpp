@@ -189,7 +189,7 @@ bool CRegionTypeTrainer::SaveTrainingResult( LPCTSTR lpszResultPath ) const
 	params.term_crit = criteria;
 
 	// do train
-	const int nCount = _pMLP->train( feature, result, cv::Mat(), cv::Mat(), params );
+	const int nCount = _pMLP->train( feature, result, cv::Mat(), cv::Mat(), params, CvANN_MLP::NO_INPUT_SCALE );
 
 	if ( nCount > 0 )
 	{

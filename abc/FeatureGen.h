@@ -44,6 +44,6 @@ namespace comed { namespace abc
 		// calc otsu
 		static void _calcOtsu( 
 					const WORD* pwSrc, int nStrider, int nBlkW, int nBlkH, WORD wMin, WORD wMax,
-					double* pdOtsu, double* pdInner, double* pdInter );
+					double* pdOtsu, double* pdInner, double* pdInter, double* pdMode );
 	};
 }} // comed::abc
