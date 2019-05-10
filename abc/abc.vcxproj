@@ -54,7 +54,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalLibraryDirectories>$(SolutionDir)..\external\log4cxx\lib\$(Platform)\$(Configuration)\;$(SolutionDir)..\clp\out\$(Platform)\$(Configuration)\;$(SolutionDir)..\external\\opencv\lib\x86\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>clutils.lib;opencv_core245d.lib;opencv_ml245d.lib;</AdditionalDependencies>
+      <AdditionalDependencies>clutils.lib;clImgProc.lib;opencv_core245d.lib;opencv_ml245d.lib;</AdditionalDependencies>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -82,7 +82,7 @@ xcopy /y $(SolutionDir)..\external\opencv\lib\x86\bin\opencv_ml245d.dll $(OutDir
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(SolutionDir)..\external\log4cxx\lib\$(Platform)\$(Configuration)\;$(SolutionDir)..\clp\out\$(Platform)\$(Configuration)\;$(SolutionDir)..\external\\opencv\lib\x86\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>clutils.lib;opencv_core245.lib;opencv_ml245.lib</AdditionalDependencies>
+      <AdditionalDependencies>clutils.lib;clImgProc.lib;opencv_core245.lib;opencv_ml245.lib</AdditionalDependencies>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -110,7 +110,6 @@ xcopy /y $(SolutionDir)..\external\opencv\lib\x86\bin\opencv_ml245.dll $(OutDir)
       </PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="FeatureGen.cpp" />
-    <ClCompile Include="FeatureGenerator.cpp" />
     <ClCompile Include="RegionTypeClassifier.cpp" />
     <ClCompile Include="RegionTypeTrainer.cpp" />
     <ClCompile Include="stdafx.cpp">
@@ -125,7 +124,6 @@ xcopy /y $(SolutionDir)..\external\opencv\lib\x86\bin\opencv_ml245.dll $(OutDir)
   <ItemGroup>
     <ClInclude Include="abc.logger.h" />
     <ClInclude Include="FeatureGen.h" />
-    <ClInclude Include="FeatureGenerator.h" />
     <ClInclude Include="include\abc\abc_types.h" />
     <ClInclude Include="include\abc\RegionTypeClassifier.h" />
     <ClInclude Include="include\abc\RegionTypeTrainer.h" />

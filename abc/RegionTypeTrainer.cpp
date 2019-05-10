@@ -3,14 +3,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include "stdafx.h"
 #include "abc/RegionTypeTrainer.h"
-
-#define USE_NEW_FEATUREGEN
-
-#ifdef USE_NEW_FEATUREGEN
 #include "FeatureGen.h"
-#else 
-#include "FeatureGenerator.h"
-#endif 
 
 // openCV2
 #include "opencv2/opencv.hpp"
@@ -27,10 +20,6 @@ using namespace comed::abc;
 #ifdef _DEBUG
 #define new DEBUG_NEW 
 #endif 
-
-// macro constants
-#define TRAINING_PARAM_COUNT			16
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // internal data types
@@ -96,7 +85,7 @@ bool CRegionTypeTrainer::AddTrainingData(
 		return false;
 	}
 
-#ifdef USE_NEW_FEATUREGEN
+	// temp buffers
 	double** ppdbFeatures = new double* [ ABC_REGION_DIVIDE_2 ];
 	ASSERT( ppdbFeatures );
 
@@ -106,6 +95,7 @@ bool CRegionTypeTrainer::AddTrainingData(
 		ASSERT( ppdbFeatures[ i ] );
 	}
 
+	// feature generation
 	CFeatureGen::CalcFeatures( img, ppdbFeatures ); 
 
 	for ( int i=0; i<ABC_REGION_DIVIDE_2; i++ )
@@ -123,64 +113,12 @@ bool CRegionTypeTrainer::AddTrainingData(
 		pTraningData->adResults[ 1 ] = arrTypes[ i ].bBackground ? 1. : -1.;
 
 		_listData.AddTail( pTraningData );
-
-		delete [] ppdbFeatures[i];
 	}
+
+	// delete 
+	for ( int i=0; i<ABC_REGION_DIVIDE_2; i++ )
+		delete [] ppdbFeatures[ i ];
 	delete [] ppdbFeatures;
-
-#else
-	// local constants
-	const int h_divide = ABC_REGION_DIVIDE, v_divide = ABC_REGION_DIVIDE;
-
-	// feature generator
-	CFeatureGenerator featureGenerator( img, h_divide, v_divide );
-
-	double dbGOtsu, dbGInner, dbGInter;
-	featureGenerator.GetGOtsu( dbGOtsu, dbGInner, dbGInter );
-
-	const double dbGMax  = featureGenerator.GetGMax();
-	const double dbGMin  = featureGenerator.GetGMin();
-	const double dbGMean = featureGenerator.GetGMean();
-	const double dbGStd  = featureGenerator.GetGStd();
-
-	int nIndex = 0;
-	for ( int i=0; i<v_divide; i++ )
-	for ( int j=0; j<h_divide; j++, nIndex++ )
-	{
-		double dbLOtsu, dbLInner, dbLInter;
-		featureGenerator.GetLOtsu( j, i, dbLOtsu, dbLInner, dbLInter );
-
-		const double dbLMax  = featureGenerator.GetLMax(  j, i );
-		const double dbLMin  = featureGenerator.GetLMin(  j, i );
-		const double dbLMean = featureGenerator.GetLMean( j, i );
-		const double dbLStd  = featureGenerator.GetLStd(  j, i );
-
-		DataTrainingParams * pTraningData = new DataTrainingParams;
-		ASSERT( pTraningData );
-
-		pTraningData->nRow = i;
-		pTraningData->nCol = j;
-		pTraningData->adFeatures[ 0 ] = dbGOtsu;
-		pTraningData->adFeatures[ 1 ] = dbGInner;
-		pTraningData->adFeatures[ 2 ] = dbGInter;
-		pTraningData->adFeatures[ 3 ] = dbGMax;
-		pTraningData->adFeatures[ 4 ] = dbGMin;
-		pTraningData->adFeatures[ 5 ] = dbGMean;
-		pTraningData->adFeatures[ 6 ] = dbGStd;
-		pTraningData->adFeatures[ 7 ] = dbLOtsu;
-		pTraningData->adFeatures[ 8 ] = dbLInner;
-		pTraningData->adFeatures[ 9 ] = dbLInter;
-		pTraningData->adFeatures[ 10 ] = dbLMax;
-		pTraningData->adFeatures[ 11 ] = dbLMin;
-		pTraningData->adFeatures[ 12 ] = dbLMean;
-		pTraningData->adFeatures[ 13 ] = dbLStd;
-
-		pTraningData->adResults[ 0 ] = arrTypes[ nIndex ].bMetal      ? 1. : -1.;
-		pTraningData->adResults[ 1 ] = arrTypes[ nIndex ].bBackground ? 1. : -1.;
-
-		_listData.AddTail( pTraningData );
-	}
-#endif
 
 	return true;
 }
@@ -312,7 +250,7 @@ int CRegionTypeTrainer::_extractData( const CString strLine, DataTrainingParams*
 
 	return nCount;
 
-	// 쩐?쨌징째징 쨉쩔?????철 쩐??쩍....
+	// ¾Æ·¡°¡ µ¿ÀÛÇÏÁö ¾ÊÀ½....
 	/*
 	return ::_stscanf_s( strLine, strFormat, 
 								&( pData->nCol ),

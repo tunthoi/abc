@@ -4,15 +4,7 @@
 #include "stdafx.h"
 #include "abc/RegionTypeClassifier.h"
 #include "FeatureGenerator.h"
-
-#define USE_NEW_FEATUREGEN
-
-#ifdef USE_NEW_FEATUREGEN
 #include "FeatureGen.h"
-#else 
-#include "FeatureGenerator.h"
-#endif 
-
 #include "opencv2/opencv.hpp"
 
 // cl
@@ -100,9 +92,7 @@ bool CRegionTypeClassifier::ClassfyRegion(
 	::QueryPerformanceCounter( &llLap1 );
 
 	// local constants
-	const int h_divide = ABC_REGION_DIVIDE;
-	const int v_divide = ABC_REGION_DIVIDE;
-	const int nNumBlocks = h_divide * v_divide;
+	const int nNumBlocks = ABC_REGION_DIVIDE * ABC_REGION_DIVIDE;
 
 	// allocate temp buffers
 	double **ppDblFeatures = new double* [ nNumBlocks ];
@@ -114,63 +104,24 @@ bool CRegionTypeClassifier::ClassfyRegion(
 		ASSERT( ppDblFeatures[i] );
 	}
 
-#ifdef USE_NEW_FEATUREGEN
-	CFeatureGen::CalcFeatures( img, ppDblFeatures );
-#else 
-	// feature generator 
-	CFeatureGenerator featureGenerator( img, h_divide, v_divide );
-
-	double dbGOtsu, dbGInner, dbGInter;
-	featureGenerator.GetGOtsu( dbGOtsu, dbGInner, dbGInter );
-
-	const double dbGMax = featureGenerator.GetGMax();
-	const double dbGMin = featureGenerator.GetGMin();
-	const double dbGMean = featureGenerator.GetGMean();
-	const double dbGStd = featureGenerator.GetGStd();
-
-	for ( int i=0; i<v_divide; i++ )
-	for ( int j=0; j<h_divide; j++ )
-	{
-		const int nIndex = i * h_divide + j;
-
-		// 30 ms
-		double dbLOtsu, dbLInner, dbLInter;
-		featureGenerator.GetLOtsu( j, i, dbLOtsu, dbLInner, dbLInter );
-
-		const double dbLMax  = featureGenerator.GetLMax(  j, i );
-		const double dbLMin  = featureGenerator.GetLMin(  j, i );
-		const double dbLMean = featureGenerator.GetLMean( j, i );
-		const double dbLStd  = featureGenerator.GetLStd(  j, i );
-
-		ppDblFeatures[ nIndex ][  0 ] = dbGOtsu;
-		ppDblFeatures[ nIndex ][  1 ] = dbGInner;
-		ppDblFeatures[ nIndex ][  2 ] = dbGInter;
-		ppDblFeatures[ nIndex ][  3 ] = dbGMax;
-		ppDblFeatures[ nIndex ][  4 ] = dbGMin;
-		ppDblFeatures[ nIndex ][  5 ] = dbGMean;
-		ppDblFeatures[ nIndex ][  6 ] = dbGStd;
-		ppDblFeatures[ nIndex ][  7 ] = dbLOtsu;
-		ppDblFeatures[ nIndex ][  8 ] = dbLInner;
-		ppDblFeatures[ nIndex ][  9 ] = dbLInter;
-		ppDblFeatures[ nIndex ][ 10 ] = dbLMax;
-		ppDblFeatures[ nIndex ][ 11 ] = dbLMin;
-		ppDblFeatures[ nIndex ][ 12 ] = dbLMean;
-		ppDblFeatures[ nIndex ][ 13 ] = dbLStd;
-	}
-#endif 
+	// feature generation
+	VERIFY( CFeatureGen::CalcFeatures( img, ppDblFeatures ) );
 
 	// do predict
 	{
 		cv::Mat feature	( nNumBlocks, ABC_FEATURE_COUNT, cv::DataType<double>::type );
 		cv::Mat result	( nNumBlocks, ABC_RESULT_COUNT,  cv::DataType<double>::type );
 
-		for ( int nIndex=0; nIndex<nNumBlocks; nIndex++ )
+		for ( int by=0; by<ABC_REGION_DIVIDE; by++ )
+		for ( int bx=0; bx<ABC_REGION_DIVIDE; bx++ )
 		{
+			const int bi = bx + by * ABC_REGION_DIVIDE;
+
 			for ( int i=0; i<ABC_FEATURE_COUNT; i++ )
-				feature.at<double>( nIndex,  i ) = ppDblFeatures[ nIndex ][ i ];
+				feature.at<double>( bi,  i ) = ppDblFeatures[ bi ][ i ];
 
 			for ( int i=0; i<ABC_RESULT_COUNT; i++ )
-				result.at<double>( nIndex,  i ) = 0.;
+				result.at<double>( bi,  i ) = 0.;
 		}
 
 		const float s = _pMLP->predict( feature, result );
@@ -314,3 +265,4 @@ void CRegionTypeClassifier::_calcGlobalFeatures(
 
 	return;
 }
+

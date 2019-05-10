@@ -197,7 +197,7 @@ void CFeatureGen::_calcBlockStatistics( const WORD* pwBlk, int nStrider, int nBl
 		__m128i mSum = mZeros;
 		__m128  mfSoS = _mm_set1_ps( 0.f );
 
-		// SSE operationA¡í ¡íc¢¯eC¨ª¨ù¡© 8 pixels¨ú¢¯ A©ø¢¬¢çCN¢¥U.
+		// Use SSE operation to process each 8 pixels.
 		for ( ; x<nBlkW_8; x+=8 )
 		{
 			__m128i mValue = _mm_loadu_si128( reinterpret_cast<const __m128i*>( pwBlk + x ) );
