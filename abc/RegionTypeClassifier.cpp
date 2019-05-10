@@ -68,6 +68,11 @@ bool CRegionTypeClassifier::Initialize( LPCTSTR lpszPath )
 	return false;
 }
 
+static inline float _calcTime( const LARGE_INTEGER& llFreq, const LARGE_INTEGER& ll2, const LARGE_INTEGER& ll1 )
+{
+	return (float)( ( (double)( ll2.QuadPart - ll1.QuadPart ) / (double) llFreq.QuadPart ) * 1000. );
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // do classfy 
 bool CRegionTypeClassifier::ClassfyRegion( 
@@ -79,12 +84,20 @@ bool CRegionTypeClassifier::ClassfyRegion(
 	if ( ! img.IsValid() )
 		return false;
 
+	// to profile time
+	LARGE_INTEGER llLap1, llLap2, llLap3, llLap4, llLap5, llLap6;
+	LARGE_INTEGER llFreq;
+
+	::QueryPerformanceCounter( &llLap1 );
+
 	// local constants
 	const int h_divide = ABC_REGION_DIVIDE;
 	const int v_divide = ABC_REGION_DIVIDE;
 
 	// feature generator 
 	CFeatureGenerator featureGenerator( img, h_divide, v_divide );
+
+	::QueryPerformanceCounter( &llLap2 );
 
 	cv::Mat feature	( h_divide * v_divide, 14, cv::DataType<double>::type );
 	cv::Mat result	( h_divide * v_divide,  2, cv::DataType<double>::type );
@@ -97,11 +110,14 @@ bool CRegionTypeClassifier::ClassfyRegion(
 	const double dbGMean = featureGenerator.GetGMean();
 	const double dbGStd = featureGenerator.GetGStd();
 
+	::QueryPerformanceCounter( &llLap3 );
+
 	for ( int i=0; i<v_divide; i++ )
 	for ( int j=0; j<h_divide; j++ )
 	{
 		const int nIndex = i * h_divide + j;
 
+		// 30 ms
 		double dbLOtsu, dbLInner, dbLInter;
 		featureGenerator.GetLOtsu( j, i, dbLOtsu, dbLInner, dbLInter );
 
@@ -129,9 +145,13 @@ bool CRegionTypeClassifier::ClassfyRegion(
 		result.at<double>( nIndex, 1 )  = 0.f;
 	}
 
+	::QueryPerformanceCounter( &llLap4 );
+
 	// do predict
 	const float s = _pMLP->predict( feature, result );
 	UNREFERENCED_PARAMETER( s );
+
+	::QueryPerformanceCounter( &llLap5 );
 
 	// output
 	const int nNums = h_divide * v_divide;
@@ -144,6 +164,25 @@ bool CRegionTypeClassifier::ClassfyRegion(
 		arrResult[ i ].bMetal = bMetal;
 		arrResult[ i ].bBackground = bBackg;
 	}
+
+	::QueryPerformanceCounter( &llLap6 );
+	::QueryPerformanceFrequency( &llFreq );
+
+	/*
+	CString strTime;
+	strTime.Format( 
+		_T("Feature: %.3f ms, ")
+		_T("Global : %.3f ms, ")
+		_T("Local  : %.3f ms, ")
+		_T("Predict: %.3f ms, ")
+		_T("Output : %.3f ms"),
+		_calcTime( llFreq, llLap2, llLap1 ),
+		_calcTime( llFreq, llLap3, llLap2 ),
+		_calcTime( llFreq, llLap4, llLap3 ),
+		_calcTime( llFreq, llLap5, llLap4 ),
+		_calcTime( llFreq, llLap6, llLap5 ) );
+	LOG_ERROR( strTime );
+	*/
 
 	return true;
 }
