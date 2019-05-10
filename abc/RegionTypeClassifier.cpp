@@ -161,8 +161,8 @@ bool CRegionTypeClassifier::ClassfyRegion(
 			}
 			else 
 			{
-				const bool bMetal = ( resultMetal.at<double>(bi, 0) > 0.0 );
-				const bool bBackg = ( resultObjec.at<double>(bi, 1) > 0.0 );
+				const bool bMetal = ( resultMetal.at<double>( bi ) > 0.0 );
+				const bool bBackg = ( resultObjec.at<double>( bi ) > 0.0 );
 
 				arrResult[ bi ].bMetal = bMetal;
 				arrResult[ bi ].bBackground = bBackg;
