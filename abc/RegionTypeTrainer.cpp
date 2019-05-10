@@ -89,35 +89,45 @@ bool CRegionTypeTrainer::AddTrainingData(
 	double** ppdbFeatures = new double* [ ABC_REGION_DIVIDE_2 ];
 	ASSERT( ppdbFeatures );
 
-	for ( int i=0; i<ABC_REGION_DIVIDE_2; i++ )
+	for ( int bi=0; bi<ABC_REGION_DIVIDE_2; bi++ )
 	{
-		ppdbFeatures[ i ] = new double [ ABC_FEATURE_COUNT ];
-		ASSERT( ppdbFeatures[ i ] );
+		ppdbFeatures[ bi ] = new double [ ABC_FEATURE_COUNT ];
+		ASSERT( ppdbFeatures[ bi ] );
 	}
 
 	// feature generation
 	CFeatureGen::CalcFeatures( img, ppdbFeatures ); 
 
-	for ( int i=0; i<ABC_REGION_DIVIDE_2; i++ )
+	for ( int bi=0; bi<ABC_REGION_DIVIDE_2; bi++ )
 	{
-		DataTrainingParams * pTraningData = new DataTrainingParams;
-		ASSERT( pTraningData );
+		const int bx = bi % ABC_REGION_DIVIDE;
+		const int by = bi / ABC_REGION_DIVIDE;
 
-		pTraningData->nRow = i / ABC_REGION_DIVIDE ;
-		pTraningData->nCol = i % ABC_REGION_DIVIDE;
+		if ( bx == 0 || bx == ABC_REGION_DIVIDE - 1 || by == 0 || by == ABC_REGION_DIVIDE - 1 )
+		{
+			// ignore the boundary blocks
+		}
+		else 
+		{
+			DataTrainingParams * pTraningData = new DataTrainingParams;
+			ASSERT( pTraningData );
 
-		for ( int j=0; j<ABC_FEATURE_COUNT; j++ )
-			pTraningData->adFeatures[ j ] = ppdbFeatures[ i ][ j ];
+			pTraningData->nCol = bx;
+			pTraningData->nRow = by;
 
-		pTraningData->adResults[ 0 ] = arrTypes[ i ].bMetal      ? 1. : -1.;
-		pTraningData->adResults[ 1 ] = arrTypes[ i ].bBackground ? 1. : -1.;
+			for ( int j=0; j<ABC_FEATURE_COUNT; j++ )
+				pTraningData->adFeatures[ j ] = ppdbFeatures[ bi ][ j ];
 
-		_listData.AddTail( pTraningData );
+			pTraningData->adResults[ 0 ] = arrTypes[ bi ].bMetal      ? 1. : -1.;
+			pTraningData->adResults[ 1 ] = arrTypes[ bi ].bBackground ? 1. : -1.;
+
+			_listData.AddTail( pTraningData );
+		}
 	}
 
 	// delete 
-	for ( int i=0; i<ABC_REGION_DIVIDE_2; i++ )
-		delete [] ppdbFeatures[ i ];
+	for ( int bi=0; bi<ABC_REGION_DIVIDE_2; bi++ )
+		delete [] ppdbFeatures[ bi ];
 	delete [] ppdbFeatures;
 
 	return true;
@@ -314,6 +324,12 @@ bool CRegionTypeTrainer::AddTrainingDataFrom( LPCTSTR lpszFilePath )
 
 				delete pData;
 				bOk = false;
+			}
+			else if ( pData->nCol == 0 || pData->nCol == ABC_REGION_DIVIDE - 1 ||
+					  pData->nRow == 0 || pData->nRow == ABC_REGION_DIVIDE - 1 )
+			{
+				// ignore boundary blocks
+				delete pData;
 			}
 			else 
 			{

@@ -27,10 +27,7 @@ using namespace comed::abc;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // only public methods
-bool CFeatureGen::CalcFeatures( 
-				IN		const cl::img::CImageBuf & img__, 
-				OUT		double** adbFeatures )
-//				OUT		double adbFeatures[ ABC_REGION_DIVIDE_2 ][ ABC_FEATURE_COUNT ] )
+bool CFeatureGen::CalcFeatures( IN const cl::img::CImageBuf & img__, OUT double** adbFeatures )
 {
 	if ( ! img__.IsValid() )
 		return false;
@@ -90,7 +87,13 @@ bool CFeatureGen::CalcFeatures(
 
 	// global otsu
 	double dGlobalOtsu = 0., dGlobalInner = 0., dGlobalInter = 0.;
-	_calcOtsu( pwSrc, nImgW, nImgW, nImgH, wGlobalMin, wGlobalMax, &dGlobalOtsu, &dGlobalInner, &dGlobalInter );
+
+	_calcOtsu( 
+		pwSrc + nBlkW + nBlkH * nImgW,		// exclude boundary blocks
+		nImgW,								// strider 
+		nBlkW * ( ABC_REGION_DIVIDE - 2 ),
+		nBlkH * ( ABC_REGION_DIVIDE - 2 ) , 
+		wGlobalMin, wGlobalMax, &dGlobalOtsu, &dGlobalInner, &dGlobalInter );
 
 	// local otsu
 	for ( int bi=0; bi<ABC_REGION_DIVIDE_2; bi++ )
@@ -98,11 +101,19 @@ bool CFeatureGen::CalcFeatures(
 		const int bx = bi % ABC_REGION_DIVIDE;
 		const int by = bi / ABC_REGION_DIVIDE;
 
-		const WORD* pwBlk = pwSrc + ( bx * nBlkW ) + ( by * nBlkH ) * nImgW;
+		double dbLocalOtsu = 0.5, dbLocalInner = 0.5, dbLocalInter = 0.5;
 
-		double dbLocalOtsu = 0., dbLocalInner = 0., dbLocalInter = 0.;
-		_calcOtsu( pwBlk, nImgW, nBlkW, nBlkH, awLocalMin[ bi ], awLocalMax[ bi ], 
-						&dbLocalOtsu, &dbLocalInner, &dbLocalInter );
+		if ( bx == 0 || bx == ABC_REGION_DIVIDE - 1 || by == 0 || by == ABC_REGION_DIVIDE - 1 )
+		{
+			// do nothing
+		}
+		else 
+		{
+			const WORD* pwBlk = pwSrc + ( bx * nBlkW ) + ( by * nBlkH ) * nImgW;
+
+			_calcOtsu( pwBlk, nImgW, nBlkW, nBlkH, awLocalMin[ bi ], awLocalMax[ bi ], 
+							&dbLocalOtsu, &dbLocalInner, &dbLocalInter );
+		}
 		
 		double* pdbFeatures = adbFeatures[ bi ];
 		ASSERT( pdbFeatures );
@@ -114,13 +125,13 @@ bool CFeatureGen::CalcFeatures(
 
 	// block population
 	const double dBlkPopulation = (double)( nBlkW * nBlkH );
-	const double dGlobalPopulation = dBlkPopulation * ABC_REGION_DIVIDE_2;
+	const double dGlobalPopulation = dBlkPopulation * ( ABC_REGION_DIVIDE - 2 ) * ( ABC_REGION_DIVIDE - 2 );
 
 	const double dGlobalMax  = (double) wGlobalMax;
 	const double dGlobalMin  = (double) wGlobalMin;
 	const double dGlobalMean = dGlobalSum / dGlobalPopulation;
 
-	// FIX: When an image having the same value comes in, it may have a value smaller than 0 due to an error.
+	// FIX: When an image having the same value is input, it may have a value smaller than 0 due to an error.
 	const double dGlobalStd  = sqrt( CLU_LBOUND( dGlobalSoS / dGlobalPopulation - CLU_SQUARE( dGlobalMean ), 0. ) );
 
 	// output
@@ -142,7 +153,7 @@ bool CFeatureGen::CalcFeatures(
 		pdFeatures[ kABCFeatureId_Local_Min   ]	= (double) awLocalMin[ bi ];
 		pdFeatures[ kABCFeatureId_Local_Mean  ]	= adLocalSum[ bi ] / dBlkPopulation;
 
-		// FIX: When an image having the same value comes in, it may have a value smaller than 0 due to an error.
+		// FIX: When an image having the same value is input, it may have a value smaller than 0 due to an error.
 		pdFeatures[ kABCFeatureId_Local_Std   ]	= sqrt( CLU_LBOUND( 
 					adLocalSoS[ bi ] / dBlkPopulation - CLU_SQUARE( pdFeatures[ kABCFeatureId_Local_Mean ] ), 0. ) );
 	}
@@ -158,6 +169,7 @@ void CFeatureGen::_calcLocalStatistics(
 {
 	UNREFERENCED_PARAMETER( nImgH );
 
+	// Using openmp does not get much faster. Removed.
 	// loop for blocks
 //	#pragma omp parallel for schedule(static)		\
 //				firstprivate( pwSrc, nBlkW, nBlkH, nImgW, awLocalMax, awLocalMin, anLocalSum, adbLocalSoS )
@@ -167,10 +179,22 @@ void CFeatureGen::_calcLocalStatistics(
 		const int bx = bi % ABC_REGION_DIVIDE;
 		const int by = bi / ABC_REGION_DIVIDE;
 
-		const WORD* pwBlk = pwSrc + ( bx * nBlkW ) + ( by * nBlkH ) * nImgW;
+		// boundary blocks
+		if ( bx == 0 || bx == ABC_REGION_DIVIDE - 1 || by == 0 || by == ABC_REGION_DIVIDE - 1 )
+		{
+			awLocalMax[ bi ] = 0x0000;
+			awLocalMin[ bi ] = 0xffff;
+			adLocalSum[ bi ] = 0.;
+			adLocalSoS[ bi ] = 0.;
+		}
+		// non-boundary blocks
+		else 
+		{
+			const WORD* pwBlk = pwSrc + ( bx * nBlkW ) + ( by * nBlkH ) * nImgW;
 
-		_calcBlockStatistics( pwBlk, nImgW, nBlkW, nBlkH, 
-			awLocalMax + bi, awLocalMin + bi, adLocalSum + bi, adLocalSoS + bi );
+			_calcBlockStatistics( pwBlk, nImgW, nBlkW, nBlkH, 
+				awLocalMax + bi, awLocalMin + bi, adLocalSum + bi, adLocalSoS + bi );
+		}
 	}
 }
 
@@ -201,7 +225,7 @@ void CFeatureGen::_calcBlockStatistics( const WORD* pwBlk, int nStrider, int nBl
 		__m128i mSum = mZeros;
 		__m128  mfSoS = _mm_set1_ps( 0.f );
 
-		// Use SSE operation to process each 8 pixels.
+		// Use SSE operation to process 8 pixels each.
 		for ( ; x<nBlkW_8; x+=8 )
 		{
 			__m128i mValue = _mm_loadu_si128( reinterpret_cast<const __m128i*>( pwBlk + x ) );
