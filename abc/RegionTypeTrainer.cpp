@@ -164,21 +164,17 @@ bool CRegionTypeTrainer::SaveTrainingResult( LPCTSTR lpszResultPath ) const
 		return false;
 	}
 
-	// local constants
-	const int h_divide = ABC_REGION_DIVIDE, v_divide = ABC_REGION_DIVIDE;
-	UNREFERENCED_PARAMETER( v_divide );
-
 	// open cv
 	cv::Mat feature( nTrainingDataCount, ABC_FEATURE_COUNT, cv::DataType<double>::type );
 	cv::Mat result ( nTrainingDataCount, ABC_RESULT_COUNT,  cv::DataType<double>::type );
 
+	int nIndex = 0;
 	POSITION pos = _listData.GetHeadPosition();
+
 	while( pos )
 	{
 		DataTrainingParams* pData = _listData.GetNext( pos );
 		ASSERT( pData );
-
-		const int nIndex = pData->nCol + pData->nRow * h_divide;
 
 		// feature
 		for ( int i=0 ; i<ABC_FEATURE_COUNT; i++ )
@@ -191,6 +187,8 @@ bool CRegionTypeTrainer::SaveTrainingResult( LPCTSTR lpszResultPath ) const
 		{
 			result.at<double>( nIndex, i ) = pData->adResults[ i ];
 		}
+
+		nIndex ++;
 	}
 
 	// criteria
