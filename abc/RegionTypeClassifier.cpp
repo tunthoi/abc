@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "abc/RegionTypeClassifier.h"
 #include "FeatureGenerator.h"
+//#include "FeatureGen.h"
 
 // openCV2
 #include "opencv2/opencv.hpp"
@@ -147,6 +148,7 @@ bool CRegionTypeClassifier::ClassfyRegion(
 		ppDblFeatures[ nIndex ][ 12 ] = dbLMean;
 		ppDblFeatures[ nIndex ][ 13 ] = dbLStd;
 	}
+	// CFeatureGen::CalcFeatures( img, ppDblFeatures );
 
 	// do predict
 	{

@@ -16,6 +16,37 @@
 namespace comed { namespace abc 
 {
 	/// <summary>
+	/// ABC feature id
+	/// </summary>
+	enum E_ABCFeatureId 
+	{
+		kABCFeatureId_Global_Otsu = 0,
+		kABCFeatureId_Global_Inner,
+		kABCFeatureId_Global_Inter,
+		kABCFeatureId_Global_Max,
+		kABCFeatureId_Global_Min,
+		kABCFeatureId_Global_Mean,
+		kABCFeatureId_Global_Std,
+
+		kABCFeatureId_Local_Otsu,
+		kABCFeatureId_Local_Inner,
+		kABCFeatureId_Local_Inter,
+		kABCFeatureId_Local_Max,
+		kABCFeatureId_Local_Min,
+		kABCFeatureId_Local_Mean,
+		kABCFeatureId_Local_Std,
+	};
+
+	/// <summary>
+	/// ABC result id
+	/// </summary>
+	enum E_ABCResultId
+	{
+		kABCResultId_Metal = 0,
+		kABCResultId_Background,
+	};
+
+	/// <summary>
 	/// classfier result
 	/// </summary>
 	struct RegionType

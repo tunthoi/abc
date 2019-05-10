@@ -33,6 +33,9 @@
     <ClCompile Include="RegionTypeClassifier.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="FeatureGen.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\abc.rc2">
@@ -65,6 +68,9 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="include\abc\RegionTypeClassifier.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="FeatureGen.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
