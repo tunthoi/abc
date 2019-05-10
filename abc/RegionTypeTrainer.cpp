@@ -181,25 +181,25 @@ bool CRegionTypeTrainer::SaveTrainingResult( LPCTSTR lpszResultPath_Objec, LPCTS
 	// criteria
 	CvTermCriteria criteria;
 	criteria.max_iter = 1000;
-	criteria.epsilon = 0.0002f;
+	criteria.epsilon = 0.000001f;
 	criteria.type = CV_TERMCRIT_ITER | CV_TERMCRIT_EPS;
 
 	CvANN_MLP_TrainParams params;
 	params.train_method = CvANN_MLP_TrainParams::RPROP;
-	params.bp_moment_scale = 0.05f;
+	params.bp_dw_scale = 0.1f;
+	params.bp_moment_scale = 0.1f;
 	params.term_crit = criteria;
 
 	// do train
 	ASSERT( _pMLP_Objec );
 	const int nCountObjec = 
-		_pMLP_Objec->train( feature, resultObjec, cv::Mat(), cv::Mat(), params, CvANN_MLP::NO_INPUT_SCALE );
+		_pMLP_Objec->train( feature, resultObjec, cv::Mat(), cv::Mat(), params, CvANN_MLP::NO_INPUT_SCALE | CvANN_MLP::NO_OUTPUT_SCALE );
 
 	ASSERT( _pMLP_Metal );
 	const int nCountMetal = 
-		_pMLP_Metal->train( feature, resultMetal, cv::Mat(), cv::Mat(), params, CvANN_MLP::NO_INPUT_SCALE );
+		_pMLP_Metal->train( feature, resultMetal, cv::Mat(), cv::Mat(), params, CvANN_MLP::NO_INPUT_SCALE | CvANN_MLP::NO_OUTPUT_SCALE );
 
-	if ( nCountObjec > 0 && nCountMetal > 0 )
-	{
+	if ( nCountObjec > 0 && nCountMetal > 0 )	{
 		// TODO: how to check ?
 		_pMLP_Objec->save( CT2A( lpszResultPath_Objec ) );
 		_pMLP_Metal->save( CT2A( lpszResultPath_Metal ) );
